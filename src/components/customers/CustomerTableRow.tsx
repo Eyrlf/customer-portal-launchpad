@@ -37,7 +37,7 @@ export function CustomerTableRow({
   onDelete,
   onRestore
 }: CustomerTableRowProps) {
-  // Get the status of the customer
+  // Get the status of the customer - this will now correctly identify "Restored" customers
   const status = getCustomerStatus(customer);
 
   return (

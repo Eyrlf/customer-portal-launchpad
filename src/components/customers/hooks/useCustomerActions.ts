@@ -152,7 +152,7 @@ export function useCustomerActions({
         action: 'restore'  // This ensures the status shows as "Restored"
       };
       
-      // Add to active customers list
+      // Add to active customers list with the 'restore' action flag
       addCustomer(restoredCustomer);
       
       // Remove from deleted customers list

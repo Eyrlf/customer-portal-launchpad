@@ -207,12 +207,14 @@ export async function restoreCustomer(customer: Customer) {
 }
 
 export function getCustomerStatus(customer: Customer) {
-  // If deleted, return 'Deleted'
-  if (customer.deleted_at) return 'Deleted';
-  
-  // Check for restore action first (highest priority)
+  // If the customer has the restore action, prioritize showing "Restored" status
   if (customer.action === 'restore') {
     return 'Restored';
+  }
+  
+  // If deleted, return 'Deleted'
+  if (customer.deleted_at) {
+    return 'Deleted';
   }
   
   // Check if the customer has been edited
