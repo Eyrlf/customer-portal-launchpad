@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -31,6 +32,19 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+// Allow for the error case in the modifier type
+type UserModifier = {
+  email: string;
+  user_metadata: {
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
+type SelectQueryErrorType = {
+  error: true;
+} & String;
+
 interface SalesRecord {
   transno: string;
   salesdate: string | null;
@@ -46,13 +60,8 @@ interface SalesRecord {
     firstname: string;
     lastname: string;
   };
-  modifier?: {
-    email: string;
-    user_metadata: {
-      first_name?: string;
-      last_name?: string;
-    };
-  } | null; // Allow null for modifier to handle SelectQueryError cases
+  // Updated modifier type to handle both successful and error cases
+  modifier?: UserModifier | null | SelectQueryErrorType;
   total_amount?: number;
   payment_status?: 'Paid' | 'Partial' | 'Unpaid';
 }
@@ -203,7 +212,8 @@ export function SalesTable() {
         };
       }));
       
-      setSales(salesWithTotals as SalesRecord[]);
+      // Use proper type assertion with unknown as intermediate step
+      setSales(salesWithTotals as unknown as SalesRecord[]);
       
       // Fetch deleted sales if showing deleted
       if (showDeleted && isAdmin) {
@@ -218,7 +228,7 @@ export function SalesTable() {
           .not('deleted_at', 'is', null);
         
         if (deletedError) throw deletedError;
-        setDeletedSales(deletedSalesData as SalesRecord[] || []);
+        setDeletedSales(deletedSalesData as unknown as SalesRecord[] || []);
       }
     } catch (error) {
       console.error('Error fetching sales:', error);
@@ -420,10 +430,11 @@ export function SalesTable() {
     if (!sale.modified_by || !sale.modified_at) return 'N/A';
     
     let name = 'Unknown User';
-    if (sale.modifier && !('error' in sale.modifier)) {
+    // Check if modifier exists and is not an error
+    if (sale.modifier && typeof sale.modifier === 'object' && !('error' in sale.modifier) && sale.modifier !== null) {
       if (sale.modifier.user_metadata?.first_name || sale.modifier.user_metadata?.last_name) {
         name = `${sale.modifier.user_metadata.first_name || ''} ${sale.modifier.user_metadata.last_name || ''}`.trim();
-      } else {
+      } else if ('email' in sale.modifier) {
         name = sale.modifier.email;
       }
     }
