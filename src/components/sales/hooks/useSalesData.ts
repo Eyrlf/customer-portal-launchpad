@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -19,7 +20,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
         .from('sales')
         .select(`
           *,
-          customer:custno(custname),
+          customer:custno(custname, custno, address, phone, payterm),
           employee:empno(firstname, lastname)
         `)
         .is('deleted_at', null);
@@ -103,7 +104,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           modifier: modifierData,
           total_amount: totalAmount,
           payment_status: paymentStatus,
-          created_at: sale.created_at || "",
+          created_at: sale.created_at || new Date().toISOString(),
           created_by: sale.created_by || null,
           deleted_by: sale.deleted_by || null
         };
@@ -119,7 +120,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           .from('sales')
           .select(`
             *,
-            customer:custno(custname),
+            customer:custno(custname, custno, address, phone, payterm),
             employee:empno(firstname, lastname)
           `)
           .not('deleted_at', 'is', null);
@@ -180,7 +181,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
             ...sale,
             modifier: modifierData,
             total_amount: totalAmount,
-            created_at: sale.created_at || "",
+            created_at: sale.created_at || new Date().toISOString(),
             created_by: sale.created_by || null,
             deleted_by: sale.deleted_by || null
           };
@@ -206,7 +207,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
     try {
       const { data, error } = await supabase
         .from('customer')
-        .select('custno, custname, address, city, phone, payterm')
+        .select('custno, custname, address, phone, payterm')
         .is('deleted_at', null);
       
       if (error) throw error;
@@ -216,7 +217,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
         custno: customer.custno,
         custname: customer.custname,
         address: customer.address || null,
-        city: customer.city || null,
+        city: null, // Adding default null value for city
         phone: customer.phone || null,
         payterm: customer.payterm || null
       }));

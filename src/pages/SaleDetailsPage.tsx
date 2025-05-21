@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +48,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 interface SalesDetailWithProduct {
+  id?: string;
   transno: string;
   prodcode: string;
   quantity: number | null;
@@ -59,7 +59,7 @@ interface SalesDetailWithProduct {
   };
   unitprice?: number | null;
   deleted_at?: string | null;
-  id?: string;
+  deleted_by?: string | null;
 }
 
 interface SalesDetailDialogProps {
@@ -224,7 +224,7 @@ const SaleDetailsPage = () => {
         .from('sales')
         .select(`
           *,
-          customer:custno(custname, custno)
+          customer:custno(custname, custno, address, phone, payterm)
         `)
         .eq('transno', transno)
         .single();
@@ -234,9 +234,13 @@ const SaleDetailsPage = () => {
       // Format sale data to match SalesRecord interface
       const formattedSale: SalesRecord = {
         ...saleData,
-        created_at: saleData.created_at || "",
+        created_at: saleData.created_at || new Date().toISOString(),
         created_by: saleData.created_by || null,
-        deleted_by: saleData.deleted_by || null
+        deleted_by: saleData.deleted_by || null,
+        customer: {
+          ...saleData.customer,
+          city: null // Add default null value for city
+        }
       };
       
       setSale(formattedSale);

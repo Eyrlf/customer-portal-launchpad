@@ -57,7 +57,7 @@ const CustomerDetailsPage = () => {
           custno: customerData.custno,
           custname: customerData.custname,
           address: customerData.address,
-          city: customerData.city || null, // Provide default values for optional fields
+          city: null, // Add null as default if not in database
           phone: customerData.phone || null,
           payterm: customerData.payterm
         };
@@ -69,7 +69,7 @@ const CustomerDetailsPage = () => {
           .from('sales')
           .select(`
             *,
-            customer:custno(custname)
+            customer:custno(custname, custno, address, phone, payterm)
           `)
           .eq('custno', custno)
           .is('deleted_at', null);
@@ -112,7 +112,7 @@ const CustomerDetailsPage = () => {
               ...sale,
               modifier: modifierData,
               total_amount: 0,
-              created_at: sale.created_at || "",
+              created_at: sale.created_at || new Date().toISOString(),
               created_by: sale.created_by || null,
               deleted_by: sale.deleted_by || null
             } as SalesRecord;
@@ -125,7 +125,7 @@ const CustomerDetailsPage = () => {
             ...sale,
             modifier: modifierData,
             total_amount: totalAmount,
-            created_at: sale.created_at || "",
+            created_at: sale.created_at || new Date().toISOString(),
             created_by: sale.created_by || null,
             deleted_by: sale.deleted_by || null
           } as SalesRecord;

@@ -1,4 +1,5 @@
 
+
 export interface SalesDetailItem {
   transno: string;
   prodcode: string;
@@ -6,7 +7,7 @@ export interface SalesDetailItem {
   unitprice: number;
 }
 
-// SalesDetailFromDB interface to fix the missing type error
+// Updated SalesDetailFromDB interface to include deleted_at and deleted_by fields
 export interface SalesDetailFromDB {
   id?: string;
   transno: string;
@@ -35,7 +36,18 @@ export interface UserPermission {
   updated_at: string;
 }
 
-// Updated SalesRecord to be complete with all fields
+// Updated Customer interface to better match the DB schema
+// Making fields that might be missing in some scenarios optional
+export interface Customer {
+  custno: string;
+  custname: string | null;
+  address: string | null;
+  city: string | null;
+  phone: string | null;
+  payterm?: string | null;
+}
+
+// Updated SalesRecord to accommodate the actual data structure from DB
 export interface SalesRecord {
   transno: string;
   salesdate: string | null;
@@ -49,7 +61,14 @@ export interface SalesRecord {
   deleted_by: string | null;
   empno?: string | null;
   payment_status?: 'Paid' | 'Partial' | 'Unpaid';
-  customer?: Customer;
+  customer?: {
+    custno: string;
+    custname: string | null;
+    address?: string | null;
+    city?: string | null;
+    phone?: string | null;
+    payterm?: string | null;
+  };
   employee?: Employee;
   modifier?: {
     email?: string;
@@ -59,16 +78,6 @@ export interface SalesRecord {
     };
     error?: string;
   } | null;
-}
-
-// Updated Customer interface to match DB schema
-export interface Customer {
-  custno: string;
-  custname: string | null;
-  address: string | null;
-  city: string | null;
-  phone: string | null;
-  payterm?: string | null;
 }
 
 // Updated Employee interface
