@@ -301,6 +301,8 @@ export type Database = {
           custno: string | null
           deleted_at: string | null
           empno: string | null
+          modified_at: string | null
+          modified_by: string | null
           salesdate: string | null
           transno: string
         }
@@ -308,6 +310,8 @@ export type Database = {
           custno?: string | null
           deleted_at?: string | null
           empno?: string | null
+          modified_at?: string | null
+          modified_by?: string | null
           salesdate?: string | null
           transno: string
         }
@@ -315,6 +319,8 @@ export type Database = {
           custno?: string | null
           deleted_at?: string | null
           empno?: string | null
+          modified_at?: string | null
+          modified_by?: string | null
           salesdate?: string | null
           transno?: string
         }

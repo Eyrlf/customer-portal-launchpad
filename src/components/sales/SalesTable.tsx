@@ -30,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface SalesRecord {
   transno: string;
@@ -37,6 +38,8 @@ interface SalesRecord {
   custno: string | null;
   empno: string | null;
   deleted_at: string | null;
+  modified_at: string | null;
+  modified_by: string | null;
   customer?: {
     custname: string;
   };
@@ -44,6 +47,15 @@ interface SalesRecord {
     firstname: string;
     lastname: string;
   };
+  modifier?: {
+    email: string;
+    user_metadata: {
+      first_name?: string;
+      last_name?: string;
+    };
+  };
+  total_amount?: number;
+  payment_status?: 'Paid' | 'Partial' | 'Unpaid';
 }
 
 interface Customer {
@@ -114,18 +126,74 @@ export function SalesTable() {
   const fetchSales = async () => {
     setLoading(true);
     try {
-      // Fetch active sales
+      // Fetch active sales with total amount and payment info
       const { data: activeSales, error: activeError } = await supabase
         .from('sales')
         .select(`
           *,
           customer:custno(custname),
-          employee:empno(firstname, lastname)
+          employee:empno(firstname, lastname),
+          modifier:modified_by(email, user_metadata)
         `)
         .is('deleted_at', null);
       
       if (activeError) throw activeError;
-      setSales(activeSales || []);
+
+      // For each sale, fetch the total amount from payments
+      const salesWithTotals = await Promise.all((activeSales || []).map(async (sale) => {
+        // Get payments for this sale
+        const { data: payments, error: paymentsError } = await supabase
+          .from('payment')
+          .select('amount')
+          .eq('transno', sale.transno);
+
+        if (paymentsError) {
+          console.error('Error fetching payments:', paymentsError);
+          return {
+            ...sale,
+            total_amount: 0,
+            payment_status: 'Unpaid' as const
+          };
+        }
+
+        // Calculate total amount from payments
+        const totalAmount = payments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+
+        // Determine payment status based on sales details and payment amount
+        let paymentStatus: 'Paid' | 'Partial' | 'Unpaid' = 'Unpaid';
+        
+        // Get sales details to determine expected total
+        const { data: salesDetails, error: detailsError } = await supabase
+          .from('salesdetail')
+          .select(`
+            quantity,
+            prodcode,
+            pricehist:prodcode(unitprice)
+          `)
+          .eq('transno', sale.transno);
+
+        if (!detailsError && salesDetails && salesDetails.length > 0) {
+          // This is simplified - in reality you would need to get the price at the time of sale
+          const expectedTotal = salesDetails.reduce((sum, detail) => {
+            const unitPrice = detail.pricehist?.unitprice || 0;
+            return sum + (unitPrice * (detail.quantity || 0));
+          }, 0);
+
+          if (totalAmount >= expectedTotal && expectedTotal > 0) {
+            paymentStatus = 'Paid';
+          } else if (totalAmount > 0) {
+            paymentStatus = 'Partial';
+          }
+        }
+
+        return {
+          ...sale,
+          total_amount: totalAmount,
+          payment_status: paymentStatus
+        };
+      }));
+      
+      setSales(salesWithTotals);
       
       // Fetch deleted sales if showing deleted
       if (showDeleted && isAdmin) {
@@ -134,7 +202,8 @@ export function SalesTable() {
           .select(`
             *,
             customer:custno(custname),
-            employee:empno(firstname, lastname)
+            employee:empno(firstname, lastname),
+            modifier:modified_by(email, user_metadata)
           `)
           .not('deleted_at', 'is', null);
         
@@ -337,6 +406,41 @@ export function SalesTable() {
     }
   };
 
+  const formatModifierInfo = (sale: SalesRecord) => {
+    if (!sale.modified_by || !sale.modified_at) return 'N/A';
+    
+    let name = 'Unknown User';
+    if (sale.modifier) {
+      if (sale.modifier.user_metadata?.first_name || sale.modifier.user_metadata?.last_name) {
+        name = `${sale.modifier.user_metadata.first_name || ''} ${sale.modifier.user_metadata.last_name || ''}`.trim();
+      } else {
+        name = sale.modifier.email;
+      }
+    }
+
+    try {
+      const timestamp = format(new Date(sale.modified_at), 'dd-MM-yyyy HH:mm:ss');
+      return `${name}\n${timestamp}`;
+    } catch (e) {
+      return `${name}\nUnknown date`;
+    }
+  };
+
+  const getStatusBadge = (status: string | undefined) => {
+    if (!status) return <Badge variant="outline">Unknown</Badge>;
+    
+    switch (status) {
+      case 'Paid':
+        return <Badge variant="success" className="bg-green-500">Paid</Badge>;
+      case 'Partial':
+        return <Badge variant="warning" className="bg-yellow-500">Partial</Badge>;
+      case 'Unpaid':
+        return <Badge variant="destructive">Unpaid</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-6">
@@ -368,32 +472,36 @@ export function SalesTable() {
           <TableRow>
             <TableHead>Transaction No</TableHead>
             <TableHead>Date</TableHead>
+            <TableHead>Total Amount</TableHead>
             <TableHead>Customer</TableHead>
-            <TableHead>Employee</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Stamp</TableHead>
             <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {!showDeleted && sales.length === 0 && !loading ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center">No sales found.</TableCell>
+              <TableCell colSpan={7} className="text-center">No sales found.</TableCell>
             </TableRow>
           ) : showDeleted && deletedSales.length === 0 && !loading ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center">No deleted sales found.</TableCell>
+              <TableCell colSpan={7} className="text-center">No deleted sales found.</TableCell>
             </TableRow>
           ) : (
             (showDeleted ? deletedSales : sales).map((sale) => (
               <TableRow key={sale.transno} className={showDeleted ? "bg-gray-50" : ""}>
                 <TableCell>{sale.transno}</TableCell>
                 <TableCell>{formatDate(sale.salesdate)}</TableCell>
+                <TableCell>${sale.total_amount?.toFixed(2) || '0.00'}</TableCell>
                 <TableCell>
                   {sale.customer?.custname || sale.custno || 'N/A'}
                 </TableCell>
                 <TableCell>
-                  {sale.employee
-                    ? `${sale.employee.firstname || ''} ${sale.employee.lastname || ''}`
-                    : sale.empno || 'N/A'}
+                  {getStatusBadge(sale.payment_status)}
+                </TableCell>
+                <TableCell className="whitespace-pre-line text-xs">
+                  {formatModifierInfo(sale)}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
