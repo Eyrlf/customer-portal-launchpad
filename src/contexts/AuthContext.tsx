@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -24,6 +23,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
+  refreshProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (first_name: string, last_name: string, email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -153,6 +153,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchUserProfile(user.id);
+    }
+  };
+
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -234,6 +240,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAdmin: profile?.role === 'admin',
         isAuthenticated: !!user,
         isLoading,
+        refreshProfile,
         login,
         signup,
         logout,
