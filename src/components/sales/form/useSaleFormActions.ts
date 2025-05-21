@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,50 +34,7 @@ export function useSaleFormActions({
   onSubmitSuccess
 }: UseSaleFormActionsProps) {
   const { toast } = useToast();
-  const { isAdmin, permissions } = useAuth();
-
-  // Use this function to check sales details permissions
-  const checkPermission = (
-    action: "add" | "edit" | "delete",
-    showToast = true
-  ): boolean => {
-    let hasPermission = false;
-
-    switch (action) {
-      case "add":
-        hasPermission = Boolean(permissions?.can_add_salesdetails || isAdmin);
-        if (!hasPermission && showToast) {
-          toast({
-            title: "Permission Denied",
-            description: "You don't have permission to add items.",
-            variant: "destructive",
-          });
-        }
-        break;
-      case "edit":
-        hasPermission = Boolean(permissions?.can_edit_salesdetails || isAdmin);
-        if (!hasPermission && showToast) {
-          toast({
-            title: "Permission Denied",
-            description: "You don't have permission to edit items.",
-            variant: "destructive",
-          });
-        }
-        break;
-      case "delete":
-        hasPermission = Boolean(permissions?.can_delete_salesdetails || isAdmin);
-        if (!hasPermission && showToast) {
-          toast({
-            title: "Permission Denied",
-            description: "You don't have permission to delete items.",
-            variant: "destructive",
-          });
-        }
-        break;
-    }
-
-    return hasPermission;
-  };
+  const { isAdmin } = useAuth();
 
   const handleSubmit = async (values: FormValues) => {
     try {
@@ -111,46 +69,6 @@ export function useSaleFormActions({
         if (error) {
           console.error("Error updating sale:", error);
           throw error;
-        }
-        
-        // Only update sales details if we have permission
-        if (checkPermission("edit", false)) {
-          // Process item updates
-          for (let i = 0; i < saleItems.length; i++) {
-            const item = saleItems[i];
-            
-            // If item has an ID, it's an existing item - update it
-            if (item.id) {
-              const { error: updateError } = await supabase
-                .from('salesdetail')
-                .update({
-                  prodcode: item.prodcode,
-                  quantity: item.quantity
-                })
-                .eq('id', item.id);
-                
-              if (updateError) {
-                console.error("Error updating sales detail:", updateError);
-                throw updateError;
-              }
-            } else {
-              // Insert new item if we have add permission
-              if (checkPermission("add", false)) {
-                const { error: insertError } = await supabase
-                  .from('salesdetail')
-                  .insert({
-                    transno: selectedSale.transno,
-                    prodcode: item.prodcode,
-                    quantity: item.quantity,
-                  });
-                  
-                if (insertError) {
-                  console.error("Error inserting sales detail:", insertError);
-                  throw insertError;
-                }
-              }
-            }
-          }
         }
         
         toast({
@@ -202,32 +120,7 @@ export function useSaleFormActions({
           throw error;
         }
         
-        console.log("Sale created successfully, inserting details for:", saleItems.length, "items");
-        
-        // Insert sale details if we have permission
-        if (checkPermission("add", false)) {
-          // Insert sale details
-          if (saleItems.length > 0) {
-            const detailsToInsert = saleItems
-              .filter(item => item.prodcode) // Only include items with a product code
-              .map(item => ({
-                transno: values.transno,
-                prodcode: item.prodcode,
-                quantity: item.quantity,
-              }));
-              
-            if (detailsToInsert.length > 0) {
-              const { error: insertError } = await supabase
-                .from('salesdetail')
-                .insert(detailsToInsert);
-              
-              if (insertError) {
-                console.error("Error inserting sale details:", insertError);
-                throw insertError;
-              }
-            }
-          }
-        }
+        console.log("Sale created successfully");
         
         toast({
           title: "Sale Created",
@@ -257,9 +150,6 @@ export function useSaleFormActions({
   };
 
   const handleAddProduct = () => {
-    // Check permission using our helper function
-    if (!checkPermission("add")) return;
-    
     const newItem = { prodcode: "", quantity: 1, unitprice: 0 };
     const updatedItems = [...saleItems, newItem];
     setSaleItems(updatedItems);
@@ -273,23 +163,10 @@ export function useSaleFormActions({
   };
 
   const handleEditProduct = (index: number) => {
-    // Check edit permission
-    if (!checkPermission("edit")) return;
+    // Empty implementation as we're removing sales detail actions
   };
 
   const handleRemoveProduct = (index: number) => {
-    // Check delete permission
-    if (!checkPermission("delete")) return;
-    
-    const itemToRemove = saleItems[index];
-    
-    // If the item has an ID, soft delete it
-    if (itemToRemove.id && isEditing && selectedSale) {
-      handleSoftDeleteItem(itemToRemove, index);
-      return;
-    }
-    
-    // Otherwise just remove it from the array (for new items)
     const updatedItems = [...saleItems];
     updatedItems.splice(index, 1);
     setSaleItems(updatedItems);
@@ -303,119 +180,14 @@ export function useSaleFormActions({
   };
   
   const handleSoftDeleteItem = async (item: SaleItem, index: number) => {
-    // Check permission
-    if (!checkPermission("delete")) return;
-    
-    if (!item.id) return;
-    
-    try {
-      // Update the salesdetail record with deleted_at timestamp
-      const { error } = await supabase
-        .from('salesdetail')
-        .update({
-          deleted_at: new Date().toISOString()
-        })
-        .eq('id', item.id);
-        
-      if (error) throw error;
-      
-      // Remove from active items
-      const updatedItems = [...saleItems];
-      const removedItem = updatedItems.splice(index, 1)[0];
-      if (removedItem) {
-        removedItem.deleted_at = new Date().toISOString();
-        setDeletedItems([...deletedItems, removedItem]);
-      }
-      
-      setSaleItems(updatedItems);
-      
-      // Update form values
-      const currentItems = form.getValues('items');
-      const updatedFormItems = [...currentItems];
-      updatedFormItems.splice(index, 1);
-      form.setValue('items', updatedFormItems);
-      
-      calculateTotal(updatedItems);
-      
-      toast({
-        title: "Item Removed",
-        description: "The item has been removed from the sale.",
-      });
-      
-    } catch (error) {
-      console.error('Error soft deleting sales detail:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove item.",
-        variant: "destructive",
-      });
-    }
+    // Empty implementation as we're removing sales detail actions
   };
   
   const handleRestoreItem = async (item: SaleItem, index: number) => {
-    // Check permission - only admins can restore items
-    if (!isAdmin) {
-      toast({
-        title: "Permission Denied",
-        description: "Only administrators can restore deleted items.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!item.id) return;
-    
-    try {
-      // Update the salesdetail record, setting deleted_at to null
-      const { error } = await supabase
-        .from('salesdetail')
-        .update({
-          deleted_at: null
-        })
-        .eq('id', item.id);
-        
-      if (error) throw error;
-      
-      // Remove from deleted items
-      const updatedDeletedItems = [...deletedItems];
-      const restoredItem = updatedDeletedItems.splice(index, 1)[0];
-      if (restoredItem) {
-        delete restoredItem.deleted_at;
-        setSaleItems([...saleItems, restoredItem]);
-      }
-      
-      setDeletedItems(updatedDeletedItems);
-      
-      // Update form values - fixed to match the form schema
-      const currentItems = form.getValues('items') || [];
-      form.setValue('items', [...currentItems, { 
-        id: restoredItem.id,
-        prodcode: restoredItem.prodcode, 
-        quantity: restoredItem.quantity,
-        deleted_at: null
-      }]);
-      
-      calculateTotal([...saleItems, restoredItem]);
-      
-      toast({
-        title: "Item Restored",
-        description: "The item has been restored to the sale.",
-      });
-      
-    } catch (error) {
-      console.error('Error restoring sales detail:', error);
-      toast({
-        title: "Error",
-        description: "Failed to restore item.",
-        variant: "destructive",
-      });
-    }
+    // Empty implementation as we're removing sales detail actions
   };
 
   const handleProductChange = (index: number, prodcode: string) => {
-    // Check edit permission
-    if (isEditing && !checkPermission("edit")) return;
-    
     const updatedItems = [...saleItems];
     const product = updatedItems[index] || { quantity: 1, unitprice: 0 };
     updatedItems[index] = { 
@@ -434,9 +206,6 @@ export function useSaleFormActions({
   };
 
   const handleQuantityChange = (index: number, quantity: number) => {
-    // Check edit permission
-    if (isEditing && !checkPermission("edit")) return;
-    
     const updatedItems = [...saleItems];
     if (index < updatedItems.length) {
       updatedItems[index] = { ...updatedItems[index], quantity };

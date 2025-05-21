@@ -1,8 +1,7 @@
 
 import { TableCell, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "../sales/StatusBadge";
-import { CustomerActions } from "./CustomerActions";
 import { Link } from "react-router-dom";
+import { CustomerActions } from "./CustomerActions";
 
 interface Customer {
   custno: string;
@@ -23,7 +22,6 @@ interface CustomerTableRowProps {
   onEdit: (customer: Customer) => void;
   onDelete: (customer: Customer) => void;
   onRestore: (customer: Customer) => void;
-  getCustomerStatus: (customer: Customer) => string;
 }
 
 export function CustomerTableRow({
@@ -34,8 +32,7 @@ export function CustomerTableRow({
   canDeleteCustomer,
   onEdit,
   onDelete,
-  onRestore,
-  getCustomerStatus
+  onRestore
 }: CustomerTableRowProps) {
   return (
     <TableRow className={showDeleted ? "bg-gray-50 dark:bg-gray-700" : ""}>
@@ -54,9 +51,6 @@ export function CustomerTableRow({
       </TableCell>
       <TableCell>{customer.address || 'N/A'}</TableCell>
       <TableCell>{customer.payterm || 'N/A'}</TableCell>
-      <TableCell>
-        <StatusBadge status={getCustomerStatus(customer)} />
-      </TableCell>
       <TableCell>
         <CustomerActions
           customer={customer}

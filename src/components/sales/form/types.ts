@@ -1,8 +1,8 @@
 
 import { z } from "zod";
-import { SalesRecord, Customer, SaleItem, Product, SalesDetailFromDB } from "../types";
+import { SalesRecord, Customer, SaleItem, Product } from "../types";
 
-// Form schema with updated items to include id and deleted_at
+// Form schema with updated items to include id and without deleted_at
 export const formSchema = z.object({
   transno: z.string().min(1, "Transaction number is required"),
   salesdate: z.date().nullable(),
@@ -12,7 +12,6 @@ export const formSchema = z.object({
       id: z.string().optional(),
       prodcode: z.string().min(1, "Product is required"),
       quantity: z.number().min(1, "Quantity must be at least 1"),
-      deleted_at: z.string().nullable().optional(),
     })
   ),
 });

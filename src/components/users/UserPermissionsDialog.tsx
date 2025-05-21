@@ -2,14 +2,13 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { UserPermission } from "@/components/sales/types";
 import { 
   Dialog, DialogContent, DialogHeader, 
   DialogTitle, DialogFooter 
 } from "@/components/ui/dialog";
 import {
   Form, FormControl, FormField, FormItem, 
-  FormLabel, FormDescription
+  FormLabel
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -32,9 +31,6 @@ const formSchema = z.object({
   can_add_sales: z.boolean(),
   can_edit_sales: z.boolean(),
   can_delete_sales: z.boolean(),
-  can_add_salesdetails: z.boolean(),
-  can_edit_salesdetails: z.boolean(),
-  can_delete_salesdetails: z.boolean(),
 });
 
 export function UserPermissionsDialog({
@@ -55,9 +51,6 @@ export function UserPermissionsDialog({
       can_add_sales: false,
       can_edit_sales: false,
       can_delete_sales: false,
-      can_add_salesdetails: false,
-      can_edit_salesdetails: false,
-      can_delete_salesdetails: false,
     },
   });
 
@@ -94,12 +87,9 @@ export function UserPermissionsDialog({
           can_add_sales: false,
           can_edit_sales: false,
           can_delete_sales: false,
-          can_add_salesdetails: false,
-          can_edit_salesdetails: false,
-          can_delete_salesdetails: false,
         });
       } else if (data) {
-        // Populate existing values with defaults for new fields if they don't exist
+        // Populate existing values
         form.reset({
           can_add_customers: data.can_add_customers,
           can_edit_customers: data.can_edit_customers,
@@ -107,9 +97,6 @@ export function UserPermissionsDialog({
           can_add_sales: data.can_add_sales,
           can_edit_sales: data.can_edit_sales,
           can_delete_sales: data.can_delete_sales,
-          can_add_salesdetails: data.can_add_salesdetails !== undefined ? data.can_add_salesdetails : false,
-          can_edit_salesdetails: data.can_edit_salesdetails !== undefined ? data.can_edit_salesdetails : false,
-          can_delete_salesdetails: data.can_delete_salesdetails !== undefined ? data.can_delete_salesdetails : false,
         });
       }
     } catch (error) {
@@ -190,7 +177,7 @@ export function UserPermissionsDialog({
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Customer Permissions Column */}
                 <div className="border rounded-lg p-4 space-y-3">
                   <h3 className="text-lg font-medium border-b pb-2">Customer Permissions</h3>
@@ -295,64 +282,6 @@ export function UserPermissionsDialog({
                       <FormItem className="flex items-center justify-between space-y-0 py-2">
                         <div>
                           <FormLabel>Delete Sales</FormLabel>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Sales Details Permissions Column */}
-                <div className="border rounded-lg p-4 space-y-3">
-                  <h3 className="text-lg font-medium border-b pb-2">Sales Details</h3>
-                  <FormField
-                    control={form.control}
-                    name="can_add_salesdetails"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-y-0 py-2">
-                        <div>
-                          <FormLabel>Add Items</FormLabel>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="can_edit_salesdetails"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-y-0 py-2">
-                        <div>
-                          <FormLabel>Edit Items</FormLabel>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="can_delete_salesdetails"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-y-0 py-2">
-                        <div>
-                          <FormLabel>Delete Items</FormLabel>
                         </div>
                         <FormControl>
                           <Switch

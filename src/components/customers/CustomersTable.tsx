@@ -418,14 +418,13 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
             <TableHead>Name</TableHead>
             <TableHead>Address</TableHead>
             <TableHead>Payment Term</TableHead>
-            <TableHead>Status</TableHead>
             <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {displayedCustomers.length === 0 && !loading ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center">
+              <TableCell colSpan={5} className="text-center">
                 {showDeleted ? "No deleted customers found." : "No customers found."}
               </TableCell>
             </TableRow>
@@ -441,7 +440,6 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onRestore={handleRestore}
-                getCustomerStatus={getCustomerStatus}
               />
             ))
           )}
