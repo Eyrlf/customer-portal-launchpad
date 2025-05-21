@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -51,24 +50,16 @@ interface SaleItem {
   deleted_at?: string | null;
 }
 
-// Define the item structure for the form schema
-interface SaleFormItem {
-  id?: string;
-  prodcode: string;
-  quantity: number;
-  deleted_at?: string | null;
-}
-
-// Updated the form schema to match the SaleItem interface
+// Updated schema to include id and deleted_at fields
 const formSchema = z.object({
   transno: z.string().min(1, "Transaction number is required"),
   salesdate: z.date().nullable(),
   custno: z.string().nullable(),
   items: z.array(
     z.object({
+      id: z.string().optional(),
       prodcode: z.string().min(1, "Product is required"),
       quantity: z.number().min(1, "Quantity must be at least 1"),
-      id: z.string().optional(),
       deleted_at: z.string().nullable().optional(),
     })
   ),
@@ -117,7 +108,7 @@ export function SaleForm({
         transno: "",
         salesdate: new Date(),
         custno: null,
-        items: [{ prodcode: "", quantity: 1 }],
+        items: [{ prodcode: "", quantity: 1, id: undefined, deleted_at: null }],
       });
       setSaleItems([{ prodcode: "", quantity: 1, unitprice: 0 }]);
       setDeletedItems([]);
@@ -247,9 +238,10 @@ export function SaleForm({
         
         setSaleItems(items);
         form.setValue('items', items.map(item => ({ 
+          id: item.id,
           prodcode: item.prodcode, 
           quantity: item.quantity,
-          id: item.id
+          deleted_at: null
         })));
         
         calculateTotal(items);
@@ -483,7 +475,7 @@ export function SaleForm({
     setSaleItems([...saleItems, newItem]);
     
     const currentItems = form.getValues('items') || [];
-    form.setValue('items', [...currentItems, { prodcode: "", quantity: 1 }]);
+    form.setValue('items', [...currentItems, { prodcode: "", quantity: 1, id: undefined, deleted_at: null }]);
   };
 
   const handleRemoveProduct = (index: number) => {
@@ -592,9 +584,9 @@ export function SaleForm({
       // Update form values
       const currentItems = form.getValues('items');
       form.setValue('items', [...currentItems, { 
+        id: restoredItem.id,
         prodcode: restoredItem.prodcode, 
         quantity: restoredItem.quantity,
-        id: restoredItem.id,
         deleted_at: null
       }]);
       
