@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -20,7 +19,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
         .from('sales')
         .select(`
           *,
-          customer:custno(custname, custno, address, phone, payterm),
+          customer:custno(custno, custname, address, payterm),
           employee:empno(firstname, lastname)
         `)
         .is('deleted_at', null);
@@ -99,8 +98,19 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           }
         }
 
+        // Create a proper customer object that matches our Customer interface
+        const customerData = sale.customer ? {
+          custno: sale.custno || '',
+          custname: sale.customer.custname || null,
+          address: sale.customer.address || null,
+          city: null, // Add default values for properties not in DB
+          phone: null, // Add default values for properties not in DB
+          payterm: sale.customer.payterm || null
+        } : null;
+
         const enhancedSale: SalesRecord = {
           ...sale,
+          customer: customerData,
           modifier: modifierData,
           total_amount: totalAmount,
           payment_status: paymentStatus,
@@ -120,7 +130,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           .from('sales')
           .select(`
             *,
-            customer:custno(custname, custno, address, phone, payterm),
+            customer:custno(custno, custname, address, payterm),
             employee:empno(firstname, lastname)
           `)
           .not('deleted_at', 'is', null);
@@ -177,8 +187,19 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
             }
           }
           
+          // Create a proper customer object
+          const customerData = sale.customer ? {
+            custno: sale.custno || '',
+            custname: sale.customer.custname || null,
+            address: sale.customer.address || null,
+            city: null,
+            phone: null,
+            payterm: sale.customer.payterm || null
+          } : null;
+          
           const enhancedDeletedSale: SalesRecord = {
             ...sale,
+            customer: customerData,
             modifier: modifierData,
             total_amount: totalAmount,
             created_at: sale.created_at || new Date().toISOString(),
@@ -207,7 +228,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
     try {
       const { data, error } = await supabase
         .from('customer')
-        .select('custno, custname, address, phone, payterm')
+        .select('custno, custname, address, payterm')
         .is('deleted_at', null);
       
       if (error) throw error;
@@ -218,7 +239,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
         custname: customer.custname,
         address: customer.address || null,
         city: null, // Adding default null value for city
-        phone: customer.phone || null,
+        phone: null, // Adding default null value for phone
         payterm: customer.payterm || null
       }));
       
@@ -345,8 +366,8 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
     employees,
     loading,
     fetchSales,
-    handleDelete,
-    handleRestore,
-    getRecordStatus
+    handleDelete: (sale: SalesRecord) => {/* ... keep existing code */},
+    handleRestore: (sale: SalesRecord) => {/* ... keep existing code */},
+    getRecordStatus: (sale: SalesRecord) => {/* ... keep existing code */}
   };
 }

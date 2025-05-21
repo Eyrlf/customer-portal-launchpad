@@ -1,5 +1,4 @@
 
-
 export interface SalesDetailItem {
   transno: string;
   prodcode: string;
@@ -42,6 +41,7 @@ export interface Customer {
   custno: string;
   custname: string | null;
   address: string | null;
+  // The following properties may not exist in the DB but are needed for TypeScript
   city: string | null;
   phone: string | null;
   payterm?: string | null;
@@ -61,14 +61,7 @@ export interface SalesRecord {
   deleted_by: string | null;
   empno?: string | null;
   payment_status?: 'Paid' | 'Partial' | 'Unpaid';
-  customer?: {
-    custno: string;
-    custname: string | null;
-    address?: string | null;
-    city?: string | null;
-    phone?: string | null;
-    payterm?: string | null;
-  };
+  customer?: Customer | null;
   employee?: Employee;
   modifier?: {
     email?: string;
