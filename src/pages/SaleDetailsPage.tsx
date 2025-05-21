@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -568,13 +567,10 @@ const SaleDetailsPage = () => {
               </CardContent>
             </Card>
 
-            {/* Sales Details with CRUD Actions */}
+            {/* Sales Details - Read-only view */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Sales Details</CardTitle>
-                <Button onClick={handleAddSalesDetail}>
-                  <Plus className="h-4 w-4 mr-2" /> Add Item
-                </Button>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -587,13 +583,12 @@ const SaleDetailsPage = () => {
                       <TableHead>Quantity</TableHead>
                       <TableHead>Unit</TableHead>
                       <TableHead>Total Amount</TableHead>
-                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {salesDetails.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center">No sales details found.</TableCell>
+                        <TableCell colSpan={6} className="text-center">No sales details found.</TableCell>
                       </TableRow>
                     ) : (
                       salesDetails.map((detail) => {
@@ -609,25 +604,6 @@ const SaleDetailsPage = () => {
                             <TableCell>{quantity}</TableCell>
                             <TableCell>{detail.product?.unit || 'N/A'}</TableCell>
                             <TableCell>${amount.toFixed(2)}</TableCell>
-                            <TableCell>
-                              <div className="flex space-x-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="icon" 
-                                  onClick={() => handleEditSalesDetail(detail)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="icon"
-                                  className="text-destructive"
-                                  onClick={() => handleDeleteSalesDetail(detail)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
                           </TableRow>
                         );
                       })
@@ -635,7 +611,6 @@ const SaleDetailsPage = () => {
                     <TableRow>
                       <TableCell colSpan={5} className="text-right font-bold">Total:</TableCell>
                       <TableCell className="font-bold">${calculateTotalAmount().toFixed(2)}</TableCell>
-                      <TableCell></TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -717,4 +692,3 @@ const SaleDetailsPage = () => {
 };
 
 export default SaleDetailsPage;
-
