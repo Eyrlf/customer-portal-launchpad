@@ -67,6 +67,10 @@ export function SalesDetailActions({
     
     onRestore();
   };
+  
+  // Only show actions the user has permission for
+  const canEdit = permissions?.can_edit_salesdetails || isAdmin;
+  const canDelete = permissions?.can_delete_salesdetails || isAdmin;
 
   return (
     <DropdownMenu>
@@ -87,13 +91,13 @@ export function SalesDetailActions({
           </>
         ) : (
           <>
-            {(permissions?.can_edit_salesdetails || isAdmin) && (
+            {canEdit && (
               <DropdownMenuItem onClick={handleEdit}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
             )}
-            {(permissions?.can_delete_salesdetails || isAdmin) && (
+            {canDelete && (
               <DropdownMenuItem onClick={handleDelete}>
                 <Trash className="mr-2 h-4 w-4" />
                 Delete

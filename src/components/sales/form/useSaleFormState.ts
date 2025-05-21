@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SalesRecord } from "../types";
-import { FormValues, formSchema, Product, SaleItem } from "./types";
+import { FormValues, formSchema, Product, SaleItem, SalesDetailFromDB } from "./types";
 
 export function useSaleFormState(
   selectedSale: SalesRecord | null,
@@ -156,7 +156,7 @@ export function useSaleFormState(
       
       if (activeDetails && activeDetails.length > 0) {
         const items = await Promise.all(
-          activeDetails.map(async (detail) => {
+          activeDetails.map(async (detail: SalesDetailFromDB) => {
             const { data: priceData } = await supabase
               .from('pricehist')
               .select('unitprice')
@@ -190,7 +190,7 @@ export function useSaleFormState(
       
       if (deletedDetails && deletedDetails.length > 0) {
         const items = await Promise.all(
-          deletedDetails.map(async (detail) => {
+          deletedDetails.map(async (detail: SalesDetailFromDB) => {
             const { data: priceData } = await supabase
               .from('pricehist')
               .select('unitprice')

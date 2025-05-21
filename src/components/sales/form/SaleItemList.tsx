@@ -37,6 +37,8 @@ export function SaleItemList({
 }: SaleItemListProps) {
   const { isAdmin, permissions } = useAuth();
   const canAddItems = permissions?.can_add_salesdetails || isAdmin;
+  const canEditItems = permissions?.can_edit_salesdetails || isAdmin;
+  const canDeleteItems = permissions?.can_delete_salesdetails || isAdmin;
 
   return (
     <div>
@@ -66,7 +68,7 @@ export function SaleItemList({
               <Select
                 value={item.prodcode}
                 onValueChange={(value) => onProductChange(index, value)}
-                disabled={showDeleted || (!isAdmin && !permissions?.can_edit_salesdetails)}
+                disabled={showDeleted || !canEditItems}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select product" />
@@ -88,7 +90,7 @@ export function SaleItemList({
                 min="1"
                 value={item.quantity}
                 onChange={(e) => onQuantityChange(index, parseInt(e.target.value) || 1)}
-                disabled={showDeleted || (!isAdmin && !permissions?.can_edit_salesdetails)}
+                disabled={showDeleted || !canEditItems}
               />
             </div>
             

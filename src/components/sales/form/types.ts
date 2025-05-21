@@ -19,7 +19,7 @@ export interface SaleItem {
   deleted_at?: string | null;
 }
 
-// Form schema
+// Form schema with updated items to include id and deleted_at
 export const formSchema = z.object({
   transno: z.string().min(1, "Transaction number is required"),
   salesdate: z.date().nullable(),
@@ -44,4 +44,13 @@ export interface SaleFormProps {
   customers: Customer[];
   onSubmitSuccess: () => void;
   onCancel: () => void;
+}
+
+// Type for salesdetail items from DB
+export interface SalesDetailFromDB {
+  id: string;
+  prodcode: string;
+  quantity: number;
+  transno: string;
+  deleted_at?: string | null;
 }
