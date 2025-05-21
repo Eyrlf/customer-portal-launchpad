@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -150,6 +149,8 @@ export function SalesTable() {
   const getRecordStatus = (sale: SalesRecord) => {
     if (showDeleted && sale.deleted_at) return 'Deleted';
     if (sale.modified_at && !sale.deleted_at) return 'Edited';
+    if (sale.deleted_at === null && sale.modified_by === null && sale.modified_at === null) return 'Added';
+    if (sale.deleted_at === null && sale.modified_by !== null) return 'Restored';
     return 'Added';
   };
 

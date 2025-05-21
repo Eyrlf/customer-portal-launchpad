@@ -26,6 +26,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UserPermission } from "../sales/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { StatusBadge } from "../sales/StatusBadge";
 
 interface Customer {
   custno: string;
@@ -33,6 +34,8 @@ interface Customer {
   address: string | null;
   payterm: string | null;
   deleted_at: string | null;
+  modified_at?: string | null;
+  modified_by?: string | null;
 }
 
 export function CustomersTable() {
@@ -403,6 +406,14 @@ export function CustomersTable() {
     }
   };
 
+  const getCustomerStatus = (customer: Customer) => {
+    if (showDeleted && customer.deleted_at) return 'Deleted';
+    if (customer.modified_at && !customer.deleted_at) return 'Edited';
+    if (customer.deleted_at === null && customer.modified_by === null && customer.modified_at === null) return 'Added';
+    if (customer.deleted_at === null && customer.modified_by !== null) return 'Restored';
+    return 'Added';
+  };
+
   const canAddCustomer = isAdmin || (userPermissions?.can_add_customers || false);
   const canEditCustomer = isAdmin || (userPermissions?.can_edit_customers || false);
   const canDeleteCustomer = isAdmin || (userPermissions?.can_delete_customers || false);
@@ -442,17 +453,18 @@ export function CustomersTable() {
             <TableHead>Name</TableHead>
             <TableHead>Address</TableHead>
             <TableHead>Payment Term</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {!showDeleted && customers.length === 0 && !loading ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center">No customers found.</TableCell>
+              <TableCell colSpan={6} className="text-center">No customers found.</TableCell>
             </TableRow>
           ) : showDeleted && deletedCustomers.length === 0 && !loading ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center">No deleted customers found.</TableCell>
+              <TableCell colSpan={6} className="text-center">No deleted customers found.</TableCell>
             </TableRow>
           ) : (
             (showDeleted ? deletedCustomers : customers).map((customer) => (
@@ -461,6 +473,9 @@ export function CustomersTable() {
                 <TableCell>{customer.custname || 'N/A'}</TableCell>
                 <TableCell>{customer.address || 'N/A'}</TableCell>
                 <TableCell>{customer.payterm || 'N/A'}</TableCell>
+                <TableCell>
+                  <StatusBadge status={getCustomerStatus(customer)} />
+                </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
