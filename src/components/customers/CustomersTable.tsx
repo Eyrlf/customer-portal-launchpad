@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
   TableHead, TableHeader, TableRow 
@@ -24,8 +24,13 @@ import {
 import { CustomerTableRow } from "./CustomerTableRow";
 import { CustomerDialog } from "./CustomerDialog";
 import { CustomerFormValues } from "./CustomerForm";
+import { Link } from "react-router-dom";
 
-export function CustomersTable() {
+interface CustomersTableProps {
+  sortOrder?: "asc" | "desc";
+}
+
+export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [deletedCustomers, setDeletedCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,17 +70,70 @@ export function CustomersTable() {
     }
   }, [showDeleted, isAdmin, user]);
 
+  // Sort customers when sortOrder changes
+  useEffect(() => {
+    // Sort the customers based on the sortOrder
+    const sortCustomers = () => {
+      const sortedCustomers = [...customers].sort((a, b) => {
+        if (sortOrder === "asc") {
+          return a.custno.localeCompare(b.custno);
+        } else {
+          return b.custno.localeCompare(a.custno);
+        }
+      });
+      
+      setCustomers(sortedCustomers);
+
+      // Also sort deleted customers if showing them
+      if (showDeleted) {
+        const sortedDeletedCustomers = [...deletedCustomers].sort((a, b) => {
+          if (sortOrder === "asc") {
+            return a.custno.localeCompare(b.custno);
+          } else {
+            return b.custno.localeCompare(a.custno);
+          }
+        });
+        
+        setDeletedCustomers(sortedDeletedCustomers);
+      }
+    };
+    
+    if (customers.length > 0 || (showDeleted && deletedCustomers.length > 0)) {
+      sortCustomers();
+    }
+  }, [sortOrder, customers.length, deletedCustomers.length]);
+
   const loadCustomersData = async () => {
     setLoading(true);
     try {
       // Fetch active customers
       const activeCustomers = await fetchCustomers();
-      setCustomers(activeCustomers);
+      
+      // Sort customers based on current sort order
+      const sortedCustomers = [...activeCustomers].sort((a, b) => {
+        if (sortOrder === "asc") {
+          return a.custno.localeCompare(b.custno);
+        } else {
+          return b.custno.localeCompare(a.custno);
+        }
+      });
+      
+      setCustomers(sortedCustomers);
       
       // Fetch deleted customers if showing deleted
       if (showDeleted && isAdmin) {
-        const deletedCustomers = await fetchDeletedCustomers();
-        setDeletedCustomers(deletedCustomers);
+        const deletedCustomersData = await fetchDeletedCustomers();
+        
+        // Sort deleted customers
+        const sortedDeletedCustomers = [...deletedCustomersData].sort((a, b) => {
+          if (sortOrder === "asc") {
+            return a.custno.localeCompare(b.custno);
+          } else {
+            return b.custno.localeCompare(a.custno);
+          }
+        });
+        
+        setDeletedCustomers(sortedDeletedCustomers);
       }
     } catch (error) {
       console.error('Error fetching customers:', error);
@@ -88,6 +146,11 @@ export function CustomersTable() {
       setLoading(false);
     }
   };
+
+  // This effect updates the data when sortOrder changes
+  useEffect(() => {
+    loadCustomersData();
+  }, [sortOrder]);
 
   const fetchUserPermissions = async () => {
     if (!user) return;
@@ -306,8 +369,17 @@ export function CustomersTable() {
   const canEditCustomer = isAdmin || (userPermissions?.can_edit_customers || false);
   const canDeleteCustomer = isAdmin || (userPermissions?.can_delete_customers || false);
 
+  // Combine and sort all customers according to the filter and sort settings
+  const displayedCustomers = useMemo(() => {
+    if (showDeleted) {
+      return deletedCustomers;
+    } else {
+      return customers;
+    }
+  }, [customers, deletedCustomers, showDeleted]);
+
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-lg shadow p-6 dark:bg-gray-800">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Customers</h2>
         <div className="flex gap-2">
@@ -316,7 +388,7 @@ export function CustomersTable() {
               variant="outline"
               onClick={() => setShowDeleted(!showDeleted)}
             >
-              {showDeleted ? "Hide Deleted" : "Show Deleted"}
+              {showDeleted ? "Show Active" : "Show Deleted"}
             </Button>
           )}
           {canAddCustomer && (
@@ -340,16 +412,14 @@ export function CustomersTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!showDeleted && customers.length === 0 && !loading ? (
+          {displayedCustomers.length === 0 && !loading ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center">No customers found.</TableCell>
-            </TableRow>
-          ) : showDeleted && deletedCustomers.length === 0 && !loading ? (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center">No deleted customers found.</TableCell>
+              <TableCell colSpan={6} className="text-center">
+                {showDeleted ? "No deleted customers found." : "No customers found."}
+              </TableCell>
             </TableRow>
           ) : (
-            (showDeleted ? deletedCustomers : customers).map((customer) => (
+            displayedCustomers.map((customer) => (
               <CustomerTableRow 
                 key={customer.custno}
                 customer={customer}

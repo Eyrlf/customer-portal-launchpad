@@ -2,6 +2,7 @@
 import { TableCell, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "../sales/StatusBadge";
 import { CustomerActions } from "./CustomerActions";
+import { Link } from "react-router-dom";
 
 interface Customer {
   custno: string;
@@ -37,9 +38,20 @@ export function CustomerTableRow({
   getCustomerStatus
 }: CustomerTableRowProps) {
   return (
-    <TableRow className={showDeleted ? "bg-gray-50" : ""}>
+    <TableRow className={showDeleted ? "bg-gray-50 dark:bg-gray-700" : ""}>
       <TableCell>{customer.custno}</TableCell>
-      <TableCell>{customer.custname || 'N/A'}</TableCell>
+      <TableCell>
+        {!showDeleted ? (
+          <Link 
+            to={`/dashboard/customers/${customer.custno}`}
+            className="text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            {customer.custname || 'N/A'}
+          </Link>
+        ) : (
+          customer.custname || 'N/A'
+        )}
+      </TableCell>
       <TableCell>{customer.address || 'N/A'}</TableCell>
       <TableCell>{customer.payterm || 'N/A'}</TableCell>
       <TableCell>

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useMemo } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
   TableHead, TableHeader, TableRow 
@@ -20,8 +21,13 @@ import { StatusBadge } from "./StatusBadge";
 import { SaleForm } from "./SaleForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Link, useNavigate } from "react-router-dom";
 
-export function SalesTable() {
+interface SalesTableProps {
+  sortOrder?: "asc" | "desc";
+}
+
+export function SalesTable({ sortOrder = "asc" }: SalesTableProps) {
   const [showDeleted, setShowDeleted] = useState(false);
   const [selectedSale, setSelectedSale] = useState<SalesRecord | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -29,10 +35,11 @@ export function SalesTable() {
   const [userPermissions, setUserPermissions] = useState<UserPermission | null>(null);
   const { isAdmin, user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const { 
-    sales, 
-    deletedSales, 
+    sales: rawSales, 
+    deletedSales: rawDeletedSales, 
     customers, 
     employees, 
     loading, 
@@ -40,6 +47,27 @@ export function SalesTable() {
     handleDelete: originalHandleDelete, 
     handleRestore: originalHandleRestore 
   } = useSalesData(showDeleted, isAdmin);
+
+  // Apply sort order to sales and deletedSales
+  const sales = useMemo(() => {
+    return [...rawSales].sort((a, b) => {
+      if (sortOrder === "asc") {
+        return a.transno.localeCompare(b.transno);
+      } else {
+        return b.transno.localeCompare(a.transno);
+      }
+    });
+  }, [rawSales, sortOrder]);
+
+  const deletedSales = useMemo(() => {
+    return [...rawDeletedSales].sort((a, b) => {
+      if (sortOrder === "asc") {
+        return a.transno.localeCompare(b.transno);
+      } else {
+        return b.transno.localeCompare(a.transno);
+      }
+    });
+  }, [rawDeletedSales, sortOrder]);
 
   useEffect(() => {
     if (user && !isAdmin) {
@@ -60,6 +88,11 @@ export function SalesTable() {
       });
     }
   }, [isAdmin, user]);
+
+  // Refetch data when sort order changes
+  useEffect(() => {
+    fetchSales();
+  }, [sortOrder]);
 
   const fetchUserPermissions = async () => {
     if (!user) return;
@@ -98,6 +131,10 @@ export function SalesTable() {
     } catch (error) {
       console.error('Error in fetchUserPermissions:', error);
     }
+  };
+
+  const handleViewDetails = (sale: SalesRecord) => {
+    navigate(`/dashboard/sales/${sale.transno}`);
   };
 
   const handleEdit = (sale: SalesRecord) => {
@@ -163,8 +200,10 @@ export function SalesTable() {
   const canEditSale = isAdmin || (userPermissions?.can_edit_sales || false);
   const canDeleteSale = isAdmin || (userPermissions?.can_delete_sales || false);
 
+  const displayedSales = showDeleted ? deletedSales : sales;
+
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-lg shadow p-6 dark:bg-gray-800">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Sales</h2>
         <div className="flex gap-2">
@@ -173,7 +212,7 @@ export function SalesTable() {
               variant="outline"
               onClick={() => setShowDeleted(!showDeleted)}
             >
-              {showDeleted ? "Hide Deleted" : "Show Deleted"}
+              {showDeleted ? "Show Active" : "Show Deleted"}
             </Button>
           )}
           {canAddSale && (
@@ -204,22 +243,40 @@ export function SalesTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {!showDeleted && sales.length === 0 && !loading ? (
+          {displayedSales.length === 0 && !loading ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center">No sales found.</TableCell>
-            </TableRow>
-          ) : showDeleted && deletedSales.length === 0 && !loading ? (
-            <TableRow>
-              <TableCell colSpan={7} className="text-center">No deleted sales found.</TableCell>
+              <TableCell colSpan={7} className="text-center">
+                {showDeleted ? "No deleted sales found." : "No sales found."}
+              </TableCell>
             </TableRow>
           ) : (
-            (showDeleted ? deletedSales : sales).map((sale) => (
-              <TableRow key={sale.transno} className={showDeleted ? "bg-gray-50" : ""}>
-                <TableCell>{sale.transno}</TableCell>
+            displayedSales.map((sale) => (
+              <TableRow key={sale.transno} className={showDeleted ? "bg-gray-50 dark:bg-gray-700" : ""}>
+                <TableCell>
+                  {!showDeleted ? (
+                    <Link 
+                      to={`/dashboard/sales/${sale.transno}`}
+                      className="text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      {sale.transno}
+                    </Link>
+                  ) : (
+                    sale.transno
+                  )}
+                </TableCell>
                 <TableCell>{formatDate(sale.salesdate)}</TableCell>
                 <TableCell>${sale.total_amount?.toFixed(2) || '0.00'}</TableCell>
                 <TableCell>
-                  {sale.customer?.custname || sale.custno || 'N/A'}
+                  {sale.customer ? (
+                    <Link 
+                      to={`/dashboard/customers/${sale.custno}`}
+                      className="text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      {sale.customer.custname || sale.custno || 'N/A'}
+                    </Link>
+                  ) : (
+                    sale.custno || 'N/A'
+                  )}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={getRecordStatus(sale)} />
@@ -246,7 +303,7 @@ export function SalesTable() {
                         </>
                       ) : (
                         <>
-                          <DropdownMenuItem onClick={() => {/* View details */}}>
+                          <DropdownMenuItem onClick={() => handleViewDetails(sale)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
