@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -255,15 +256,20 @@ export function SalesTable({ statusFilter = "all", searchQuery = "", sortOrder =
             <TableHead>Date</TableHead>
             <TableHead>Total Amount</TableHead>
             <TableHead>Customer</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Stamp</TableHead>
+            {/* Only show Status and Stamp columns for admin users */}
+            {isAdmin && (
+              <>
+                <TableHead>Status</TableHead>
+                <TableHead>Stamp</TableHead>
+              </>
+            )}
             <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {displayedSales.length === 0 && !loading ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center">
+              <TableCell colSpan={isAdmin ? 7 : 5} className="text-center">
                 {showDeleted ? "No deleted sales found." : "No sales found."}
               </TableCell>
             </TableRow>
@@ -296,12 +302,17 @@ export function SalesTable({ statusFilter = "all", searchQuery = "", sortOrder =
                     sale.custno || 'N/A'
                   )}
                 </TableCell>
-                <TableCell>
-                  <StatusBadge status={getRecordStatus(sale)} />
-                </TableCell>
-                <TableCell className="whitespace-pre-line text-xs">
-                  {formatModifierInfo(sale)}
-                </TableCell>
+                {/* Only show Status and Stamp columns for admin users */}
+                {isAdmin && (
+                  <>
+                    <TableCell>
+                      <StatusBadge status={getRecordStatus(sale)} />
+                    </TableCell>
+                    <TableCell className="whitespace-pre-line text-xs">
+                      {formatModifierInfo(sale)}
+                    </TableCell>
+                  </>
+                )}
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

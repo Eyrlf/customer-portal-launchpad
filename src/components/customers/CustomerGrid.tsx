@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Customer } from "../customers/CustomerService";
+import { Customer } from "./CustomerService";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "../sales/StatusBadge";
 import { User, Phone, MapPin, Calendar } from "lucide-react";
@@ -10,20 +10,31 @@ interface CustomerGridProps {
   customers: Customer[];
   onDelete: (customer: Customer) => void;
   onEdit: (customer: Customer) => void;
-  getCustomerStatus: (customer: Customer) => string;
+  getCustomerStatus?: (customer: Customer) => string;
   isDeleting?: boolean;
   isAdmin?: boolean;
   onView?: (customer: Customer) => void;
+  showDeleted?: boolean;
+  canEditCustomer?: boolean;
+  canDeleteCustomer?: boolean;
+  onRestore?: (customer: Customer) => void;
 }
 
 export function CustomerGrid({ 
   customers, 
   onDelete, 
   onEdit, 
-  getCustomerStatus, 
+  getCustomerStatus = (customer) => customer.deleted_at ? 'Deleted' : 
+                                    customer.modified_at ? 'Edited' : 
+                                    (customer.deleted_at !== null && customer.deleted_by === null) ? 'Restored' : 
+                                    'Added',
   isDeleting = false,
   isAdmin = false,
-  onView
+  onView,
+  showDeleted = false,
+  canEditCustomer = false,
+  canDeleteCustomer = false,
+  onRestore
 }: CustomerGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -65,9 +76,12 @@ export function CustomerGrid({
               customer={customer} 
               onDelete={onDelete}
               onEdit={onEdit}
-              onView={onView}
-              isDeleting={isDeleting}
+              showDeleted={showDeleted}
               isAdmin={isAdmin}
+              canEditCustomer={canEditCustomer}
+              canDeleteCustomer={canDeleteCustomer}
+              onRestore={onRestore}
+              onView={onView}
             />
           </CardFooter>
         </Card>

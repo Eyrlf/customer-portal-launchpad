@@ -11,14 +11,15 @@ import { Plus, Grid, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { CustomerGrid } from '@/components/customers/CustomerGrid';
-import { Customer } from '@/components/customers/CustomerService';
+import { Customer, getCustomerStatus } from '@/components/customers/CustomerService';
 import { useToast } from '@/hooks/use-toast';
 
 const CustomersPage = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [showDeleted, setShowDeleted] = useState(false);
   
   // Custom hooks for data management
   const { 
@@ -32,14 +33,12 @@ const CustomersPage = () => {
     loadCustomersData 
   } = useCustomersData(showDeleted, isAdmin);
   
-  const [showDeleted, setShowDeleted] = useState(false);
-
   // Custom hook for permissions
   const { 
     canAddCustomer, 
     canEditCustomer, 
     canDeleteCustomer 
-  } = useCustomerPermissions();
+  } = useCustomerPermissions(isAdmin, user?.id);
 
   // Custom hook for customer actions
   const {
@@ -126,6 +125,11 @@ const CustomersPage = () => {
             onView={handleView}
             isDeleting={false}
             isAdmin={isAdmin}
+            showDeleted={showDeleted}
+            canEditCustomer={canEditCustomer}
+            canDeleteCustomer={canDeleteCustomer}
+            onRestore={handleRestore}
+            getCustomerStatus={getCustomerStatus}
           />
         )}
 

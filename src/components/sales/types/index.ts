@@ -38,7 +38,7 @@ export interface Customer {
   custname: string | null;
   address: string | null;
   city: string | null;
-  phone: string | null;
+  phone?: string | null;
   payterm?: string | null;
   deleted_at?: string | null;
   deleted_by?: string | null;
@@ -57,7 +57,7 @@ export interface SalesRecord {
   modified_at: string | null;
   modified_by: string | null;
   deleted_at: string | null;
-  deleted_by: string | null; 
+  deleted_by?: string | null; 
   empno?: string | null;
   payment_status?: 'Paid' | 'Partial' | 'Unpaid';
   customer?: Customer | null;
