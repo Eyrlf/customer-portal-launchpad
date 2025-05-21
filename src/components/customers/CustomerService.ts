@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CustomerFormValues } from "./CustomerForm";
 
@@ -215,9 +214,7 @@ export function getCustomerStatus(customer: Customer) {
     return 'Restored';
   }
   
-  // Check if the customer is in the activity logs as 'update'
-  // Since we don't have direct access to activity logs here, we rely on the action field
-  // that we set when restoring a customer
+  // Check if the customer has been edited
   if (customer.modified_at) {
     return 'Edited';
   }
