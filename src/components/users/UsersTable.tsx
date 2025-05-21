@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -10,7 +11,7 @@ import {
   DropdownMenuItem, DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/use-toast";
-import { Edit, MoreVertical } from "lucide-react";
+import { Edit, MoreVertical, Shield, Key } from "lucide-react";
 import { 
   Dialog, DialogContent, DialogHeader, 
   DialogTitle, DialogDescription, DialogFooter
@@ -20,6 +21,7 @@ import {
   FormLabel, FormMessage
 } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserPermissionsDialog } from "./UserPermissionsDialog"; 
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,6 +41,7 @@ export function UsersTable() {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const formSchema = z.object({
@@ -75,14 +78,37 @@ export function UsersTable() {
       // For each profile, get the user email from auth.users
       const usersWithProfile = await Promise.all(
         profiles.map(async (profile) => {
-          const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
-            profile.id
-          );
-          
-          if (userError || !userData?.user) {
+          try {
+            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
+              profile.id
+            );
+            
+            if (userError || !userData?.user) {
+              return {
+                id: profile.id,
+                email: 'Unknown',
+                profile: {
+                  first_name: profile.first_name,
+                  last_name: profile.last_name,
+                  role: profile.role as 'admin' | 'customer',
+                },
+              };
+            }
+            
             return {
               id: profile.id,
-              email: 'Unknown',
+              email: userData.user.email || 'No email',
+              profile: {
+                first_name: profile.first_name,
+                last_name: profile.last_name,
+                role: profile.role as 'admin' | 'customer',
+              },
+            };
+          } catch (error) {
+            console.error('Error fetching user details:', error);
+            return {
+              id: profile.id,
+              email: 'Error fetching',
               profile: {
                 first_name: profile.first_name,
                 last_name: profile.last_name,
@@ -90,16 +116,6 @@ export function UsersTable() {
               },
             };
           }
-          
-          return {
-            id: profile.id,
-            email: userData.user.email || 'No email',
-            profile: {
-              first_name: profile.first_name,
-              last_name: profile.last_name,
-              role: profile.role as 'admin' | 'customer',
-            },
-          };
         })
       );
       
@@ -119,6 +135,19 @@ export function UsersTable() {
   const handleEdit = (user: User) => {
     setSelectedUser(user);
     setEditDialogOpen(true);
+  };
+
+  const handleManagePermissions = (user: User) => {
+    if (user.profile.role === 'admin') {
+      toast({
+        title: "Information",
+        description: "Admin users automatically have all permissions.",
+      });
+      return;
+    }
+    
+    setSelectedUser(user);
+    setPermissionsDialogOpen(true);
   };
 
   const updateUserRole = async (values: z.infer<typeof formSchema>) => {
@@ -206,8 +235,12 @@ export function UsersTable() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEdit(user)}>
-                        <Edit className="mr-2 h-4 w-4" />
+                        <Shield className="mr-2 h-4 w-4" />
                         Change Role
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleManagePermissions(user)}>
+                        <Key className="mr-2 h-4 w-4" />
+                        Manage Permissions
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -262,6 +295,15 @@ export function UsersTable() {
           </Form>
         </DialogContent>
       </Dialog>
+      
+      {selectedUser && (
+        <UserPermissionsDialog
+          userId={selectedUser.id}
+          userName={selectedUser.profile.first_name || selectedUser.email}
+          isOpen={permissionsDialogOpen}
+          onClose={() => setPermissionsDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }

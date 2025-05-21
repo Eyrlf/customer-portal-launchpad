@@ -34,6 +34,12 @@ interface Customer {
   deleted_at: string | null;
 }
 
+interface UserPermissions {
+  can_add_customers: boolean;
+  can_edit_customers: boolean;
+  can_delete_customers: boolean;
+}
+
 export function CustomersTable() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [deletedCustomers, setDeletedCustomers] = useState<Customer[]>([]);
@@ -42,8 +48,13 @@ export function CustomersTable() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [userPermissions, setUserPermissions] = useState<UserPermissions>({
+    can_add_customers: false,
+    can_edit_customers: false,
+    can_delete_customers: false,
+  });
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
 
   const formSchema = z.object({
     custno: z.string().min(1, "Customer number is required"),
@@ -64,7 +75,17 @@ export function CustomersTable() {
 
   useEffect(() => {
     fetchCustomers();
-  }, [showDeleted]);
+    if (user && !isAdmin) {
+      fetchUserPermissions();
+    } else if (isAdmin) {
+      // Admins have all permissions
+      setUserPermissions({
+        can_add_customers: true,
+        can_edit_customers: true,
+        can_delete_customers: true,
+      });
+    }
+  }, [showDeleted, isAdmin, user]);
 
   useEffect(() => {
     if (selectedCustomer && isEditing) {
@@ -83,6 +104,40 @@ export function CustomersTable() {
       });
     }
   }, [selectedCustomer, isEditing, form]);
+
+  const fetchUserPermissions = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('can_add_customers, can_edit_customers, can_delete_customers')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching user permissions:', error);
+        return;
+      }
+      
+      if (data) {
+        setUserPermissions({
+          can_add_customers: data.can_add_customers,
+          can_edit_customers: data.can_edit_customers,
+          can_delete_customers: data.can_delete_customers,
+        });
+      } else {
+        // Default to no permissions if none are set
+        setUserPermissions({
+          can_add_customers: false,
+          can_edit_customers: false,
+          can_delete_customers: false,
+        });
+      }
+    } catch (error) {
+      console.error('Error in fetchUserPermissions:', error);
+    }
+  };
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -121,6 +176,15 @@ export function CustomersTable() {
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       if (isEditing && selectedCustomer) {
+        if (!userPermissions.can_edit_customers && !isAdmin) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to edit customers.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         // Update existing customer
         const { data, error } = await supabase
           .from('customer')
@@ -146,6 +210,15 @@ export function CustomersTable() {
           details: JSON.stringify(values),
         });
       } else {
+        if (!userPermissions.can_add_customers && !isAdmin) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to add customers.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         // Create new customer
         const { data, error } = await supabase
           .from('customer')
@@ -195,12 +268,30 @@ export function CustomersTable() {
   };
 
   const handleEdit = (customer: Customer) => {
+    if (!userPermissions.can_edit_customers && !isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit customers.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSelectedCustomer(customer);
     setIsEditing(true);
     setDialogOpen(true);
   };
 
   const handleDelete = async (customer: Customer) => {
+    if (!userPermissions.can_delete_customers && !isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to delete customers.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('customer')
@@ -234,6 +325,15 @@ export function CustomersTable() {
   };
 
   const handleRestore = async (customer: Customer) => {
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can restore deleted customers.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('customer')
@@ -279,15 +379,17 @@ export function CustomersTable() {
               {showDeleted ? "Hide Deleted" : "Show Deleted"}
             </Button>
           )}
-          <Button
-            onClick={() => {
-              setIsEditing(false);
-              setSelectedCustomer(null);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus size={16} className="mr-2" /> Add Customer
-          </Button>
+          {(userPermissions.can_add_customers || isAdmin) && (
+            <Button
+              onClick={() => {
+                setIsEditing(false);
+                setSelectedCustomer(null);
+                setDialogOpen(true);
+              }}
+            >
+              <Plus size={16} className="mr-2" /> Add Customer
+            </Button>
+          )}
         </div>
       </div>
       
@@ -337,11 +439,13 @@ export function CustomersTable() {
                         </>
                       ) : (
                         <>
-                          <DropdownMenuItem onClick={() => handleEdit(customer)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          {isAdmin && (
+                          {(userPermissions.can_edit_customers || isAdmin) && (
+                            <DropdownMenuItem onClick={() => handleEdit(customer)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {(userPermissions.can_delete_customers || isAdmin) && (
                             <DropdownMenuItem onClick={() => handleDelete(customer)}>
                               <Trash className="mr-2 h-4 w-4" />
                               Delete

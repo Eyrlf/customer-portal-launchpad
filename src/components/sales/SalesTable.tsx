@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
   TableHead, TableHeader, TableRow 
@@ -19,13 +19,27 @@ import { formatDate, formatModifierInfo } from "./utils/formatters";
 import { useSalesData } from "./hooks/useSalesData";
 import { StatusBadge } from "./StatusBadge";
 import { SaleForm } from "./SaleForm";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+
+interface UserPermissions {
+  can_add_sales: boolean;
+  can_edit_sales: boolean;
+  can_delete_sales: boolean;
+}
 
 export function SalesTable() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [selectedSale, setSelectedSale] = useState<SalesRecord | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { isAdmin } = useAuth();
+  const [userPermissions, setUserPermissions] = useState<UserPermissions>({
+    can_add_sales: false,
+    can_edit_sales: false,
+    can_delete_sales: false,
+  });
+  const { isAdmin, user } = useAuth();
+  const { toast } = useToast();
   
   const { 
     sales, 
@@ -34,14 +48,96 @@ export function SalesTable() {
     employees, 
     loading, 
     fetchSales, 
-    handleDelete, 
-    handleRestore 
+    handleDelete: originalHandleDelete, 
+    handleRestore: originalHandleRestore 
   } = useSalesData(showDeleted, isAdmin);
 
+  useEffect(() => {
+    if (user && !isAdmin) {
+      fetchUserPermissions();
+    } else if (isAdmin) {
+      // Admins have all permissions
+      setUserPermissions({
+        can_add_sales: true,
+        can_edit_sales: true,
+        can_delete_sales: true,
+      });
+    }
+  }, [isAdmin, user]);
+
+  const fetchUserPermissions = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('can_add_sales, can_edit_sales, can_delete_sales')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching user permissions:', error);
+        return;
+      }
+      
+      if (data) {
+        setUserPermissions({
+          can_add_sales: data.can_add_sales,
+          can_edit_sales: data.can_edit_sales,
+          can_delete_sales: data.can_delete_sales,
+        });
+      } else {
+        // Default to no permissions if none are set
+        setUserPermissions({
+          can_add_sales: false,
+          can_edit_sales: false,
+          can_delete_sales: false,
+        });
+      }
+    } catch (error) {
+      console.error('Error in fetchUserPermissions:', error);
+    }
+  };
+
   const handleEdit = (sale: SalesRecord) => {
+    if (!userPermissions.can_edit_sales && !isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit sales.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSelectedSale(sale);
     setIsEditing(true);
     setDialogOpen(true);
+  };
+
+  const handleDelete = (sale: SalesRecord) => {
+    if (!userPermissions.can_delete_sales && !isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to delete sales.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    originalHandleDelete(sale);
+  };
+
+  const handleRestore = (sale: SalesRecord) => {
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can restore deleted sales.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    originalHandleRestore(sale);
   };
 
   const handleFormSuccess = () => {
@@ -62,15 +158,17 @@ export function SalesTable() {
               {showDeleted ? "Hide Deleted" : "Show Deleted"}
             </Button>
           )}
-          <Button
-            onClick={() => {
-              setIsEditing(false);
-              setSelectedSale(null);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus size={16} className="mr-2" /> Add Sale
-          </Button>
+          {(userPermissions.can_add_sales || isAdmin) && (
+            <Button
+              onClick={() => {
+                setIsEditing(false);
+                setSelectedSale(null);
+                setDialogOpen(true);
+              }}
+            >
+              <Plus size={16} className="mr-2" /> Add Sale
+            </Button>
+          )}
         </div>
       </div>
       
@@ -134,11 +232,13 @@ export function SalesTable() {
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(sale)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          {isAdmin && (
+                          {(userPermissions.can_edit_sales || isAdmin) && (
+                            <DropdownMenuItem onClick={() => handleEdit(sale)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {(userPermissions.can_delete_sales || isAdmin) && (
                             <DropdownMenuItem onClick={() => handleDelete(sale)}>
                               <Trash className="mr-2 h-4 w-4" />
                               Delete
