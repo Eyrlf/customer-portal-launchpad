@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -69,55 +68,23 @@ export function UsersTable() {
 
   const fetchUsers = async () => {
     try {
+      // Updated query to fetch profiles with emails
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, role');
+        .select('id, first_name, last_name, role, email');
       
       if (profilesError) throw profilesError;
 
-      // For each profile, get the user email from auth.users
-      const usersWithProfile = await Promise.all(
-        profiles.map(async (profile) => {
-          try {
-            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
-              profile.id
-            );
-            
-            if (userError || !userData?.user) {
-              return {
-                id: profile.id,
-                email: 'Unknown',
-                profile: {
-                  first_name: profile.first_name,
-                  last_name: profile.last_name,
-                  role: profile.role as 'admin' | 'customer',
-                },
-              };
-            }
-            
-            return {
-              id: profile.id,
-              email: userData.user.email || 'No email',
-              profile: {
-                first_name: profile.first_name,
-                last_name: profile.last_name,
-                role: profile.role as 'admin' | 'customer',
-              },
-            };
-          } catch (error) {
-            console.error('Error fetching user details:', error);
-            return {
-              id: profile.id,
-              email: 'Error fetching',
-              profile: {
-                first_name: profile.first_name,
-                last_name: profile.last_name,
-                role: profile.role as 'admin' | 'customer',
-              },
-            };
-          }
-        })
-      );
+      // Transform profiles to the expected user structure
+      const usersWithProfile = profiles.map(profile => ({
+        id: profile.id,
+        email: profile.email || 'No email',
+        profile: {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          role: profile.role as 'admin' | 'customer',
+        },
+      }));
       
       setUsers(usersWithProfile);
     } catch (error) {
