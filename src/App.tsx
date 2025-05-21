@@ -14,6 +14,8 @@ import SalesPage from "./pages/SalesPage";
 import CustomerDetailsPage from "./pages/CustomerDetailsPage";
 import ActivityLogsPage from "./pages/ActivityLogsPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import ProfilePage from "./pages/ProfilePage";
+import SettingsPage from "./pages/SettingsPage";
 import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,8 @@ const App = () => (
             <Route path="/dashboard/sales" element={<SalesPage />} />
             <Route path="/dashboard/activity-logs" element={<ActivityLogsPage />} />
             <Route path="/dashboard/notifications" element={<NotificationsPage />} />
+            <Route path="/dashboard/profile" element={<ProfilePage />} />
+            <Route path="/dashboard/settings" element={<SettingsPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
