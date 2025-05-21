@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -49,29 +50,14 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           }
         }
 
-        // For each sale, fetch the total amount from payments
+        // For each sale, fetch the total amount from payments and/or sales details
+        // First try to get from payments table
         const { data: payments, error: paymentsError } = await supabase
           .from('payment')
           .select('amount')
           .eq('transno', sale.transno);
 
-        if (paymentsError) {
-          console.error('Error fetching payments:', paymentsError);
-          return {
-            ...sale,
-            modifier: modifierData,
-            total_amount: 0,
-            payment_status: 'Unpaid' as const
-          };
-        }
-
-        // Calculate total amount from payments
-        const totalAmount = payments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
-
-        // Determine payment status based on sales details and payment amount
-        let paymentStatus: 'Paid' | 'Partial' | 'Unpaid' = 'Unpaid';
-        
-        // Get sales details to determine expected total
+        // Get the total from salesdetail and pricehist
         const { data: salesDetails, error: detailsError } = await supabase
           .from('salesdetail')
           .select(`
@@ -81,10 +67,9 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           `)
           .eq('transno', sale.transno);
 
+        // Calculate expected total from sales details and price history
+        let expectedTotal = 0;
         if (!detailsError && salesDetails && salesDetails.length > 0) {
-          // Now we'll fetch the price history for each product
-          let expectedTotal = 0;
-          
           for (const detail of salesDetails) {
             const { data: priceData, error: priceError } = await supabase
               .from('pricehist')
@@ -98,10 +83,18 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
               expectedTotal += (unitPrice * (detail.quantity || 0));
             }
           }
+        }
 
-          if (totalAmount >= expectedTotal && expectedTotal > 0) {
+        // Calculate total amount from payments or use expected total if no payments
+        const paymentTotal = payments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+        const totalAmount = paymentTotal > 0 ? paymentTotal : expectedTotal;
+
+        // Determine payment status based on sales details and payment amount
+        let paymentStatus: 'Paid' | 'Partial' | 'Unpaid' = 'Unpaid';
+        if (totalAmount > 0) {
+          if (paymentTotal >= expectedTotal && expectedTotal > 0) {
             paymentStatus = 'Paid';
-          } else if (totalAmount > 0) {
+          } else if (paymentTotal > 0) {
             paymentStatus = 'Partial';
           }
         }
@@ -150,10 +143,39 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
               };
             }
           }
+
+          // Get the total from salesdetail and pricehist for deleted sales too
+          const { data: salesDetails, error: detailsError } = await supabase
+            .from('salesdetail')
+            .select(`
+              quantity,
+              prodcode,
+              product:prodcode(*)
+            `)
+            .eq('transno', sale.transno);
+
+          // Calculate expected total from sales details and price history
+          let totalAmount = 0;
+          if (!detailsError && salesDetails && salesDetails.length > 0) {
+            for (const detail of salesDetails) {
+              const { data: priceData, error: priceError } = await supabase
+                .from('pricehist')
+                .select('unitprice')
+                .eq('prodcode', detail.prodcode)
+                .order('effdate', { ascending: false })
+                .limit(1);
+                
+              if (!priceError && priceData && priceData.length > 0) {
+                const unitPrice = priceData[0].unitprice || 0;
+                totalAmount += (unitPrice * (detail.quantity || 0));
+              }
+            }
+          }
           
           return {
             ...sale,
-            modifier: modifierData
+            modifier: modifierData,
+            total_amount: totalAmount
           };
         }));
         

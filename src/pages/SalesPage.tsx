@@ -31,7 +31,9 @@ const SalesPage = () => {
   return (
     <DashboardLayout>
       <ScrollArea className="h-[calc(100vh-80px)]">
-        <SalesTable />
+        <div className="p-6">
+          <SalesTable />
+        </div>
       </ScrollArea>
     </DashboardLayout>
   );
