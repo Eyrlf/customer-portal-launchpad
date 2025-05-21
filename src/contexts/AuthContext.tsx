@@ -157,9 +157,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Handle case where new permissions don't exist in old records
         setPermissions({
           ...data,
-          can_add_salesdetails: data.can_add_salesdetails || false,
-          can_edit_salesdetails: data.can_edit_salesdetails || false,
-          can_delete_salesdetails: data.can_delete_salesdetails || false
+          can_add_salesdetails: data.can_add_salesdetails !== undefined ? data.can_add_salesdetails : false,
+          can_edit_salesdetails: data.can_edit_salesdetails !== undefined ? data.can_edit_salesdetails : false,
+          can_delete_salesdetails: data.can_delete_salesdetails !== undefined ? data.can_delete_salesdetails : false
         } as UserPermission);
       }
     } catch (error) {

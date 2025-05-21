@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -99,7 +98,7 @@ export function UserPermissionsDialog({
           can_delete_salesdetails: false,
         });
       } else if (data) {
-        // Populate existing values
+        // Populate existing values with defaults for new fields if they don't exist
         form.reset({
           can_add_customers: data.can_add_customers,
           can_edit_customers: data.can_edit_customers,
@@ -107,9 +106,9 @@ export function UserPermissionsDialog({
           can_add_sales: data.can_add_sales,
           can_edit_sales: data.can_edit_sales,
           can_delete_sales: data.can_delete_sales,
-          can_add_salesdetails: data.can_add_salesdetails || false,
-          can_edit_salesdetails: data.can_edit_salesdetails || false,
-          can_delete_salesdetails: data.can_delete_salesdetails || false,
+          can_add_salesdetails: data.can_add_salesdetails !== undefined ? data.can_add_salesdetails : false,
+          can_edit_salesdetails: data.can_edit_salesdetails !== undefined ? data.can_edit_salesdetails : false,
+          can_delete_salesdetails: data.can_delete_salesdetails !== undefined ? data.can_delete_salesdetails : false,
         });
       }
     } catch (error) {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -64,6 +63,9 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
         can_add_sales: true,
         can_edit_sales: true,
         can_delete_sales: true,
+        can_add_salesdetails: true,
+        can_edit_salesdetails: true,
+        can_delete_salesdetails: true,
         created_at: "",
         updated_at: ""
       });
@@ -177,6 +179,9 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
           can_add_sales: false,
           can_edit_sales: false,
           can_delete_sales: false,
+          can_add_salesdetails: false,
+          can_edit_salesdetails: false,
+          can_delete_salesdetails: false,
           created_at: "",
           updated_at: ""
         });
@@ -184,7 +189,13 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
       }
       
       if (data) {
-        setUserPermissions(data as UserPermission);
+        // Add new properties with default values if they don't exist in the data
+        setUserPermissions({
+          ...data,
+          can_add_salesdetails: data.can_add_salesdetails !== undefined ? data.can_add_salesdetails : false,
+          can_edit_salesdetails: data.can_edit_salesdetails !== undefined ? data.can_edit_salesdetails : false,
+          can_delete_salesdetails: data.can_delete_salesdetails !== undefined ? data.can_delete_salesdetails : false
+        } as UserPermission);
       }
     } catch (error) {
       console.error('Error in fetchUserPermissions:', error);
