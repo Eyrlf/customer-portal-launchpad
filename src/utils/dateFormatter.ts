@@ -28,6 +28,37 @@ export const formatDateByUserPreference = (dateString: string | null | undefined
     const dateFormat = getUserDateFormat();
     const date = new Date(dateString);
     
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return dateString.toString();
+    }
+    
+    // Convert to format patterns that date-fns understands
+    const formatPattern = 
+      dateFormat === "MM/DD/YYYY" ? "MM/dd/yyyy h:mm a" :
+      dateFormat === "DD/MM/YYYY" ? "dd/MM/yyyy HH:mm" :
+      "yyyy-MM-dd HH:mm";
+    
+    return format(date, formatPattern);
+  } catch (e) {
+    console.error("Error formatting date:", e, dateString);
+    return dateString?.toString() || "";
+  }
+};
+
+// Format date without time
+export const formatDateOnlyByUserPreference = (dateString: string | null | undefined): string => {
+  if (!dateString) return "";
+  
+  try {
+    const dateFormat = getUserDateFormat();
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return dateString.toString();
+    }
+    
     // Convert to format patterns that date-fns understands
     const formatPattern = 
       dateFormat === "MM/DD/YYYY" ? "MM/dd/yyyy" :
@@ -37,7 +68,7 @@ export const formatDateByUserPreference = (dateString: string | null | undefined
     return format(date, formatPattern);
   } catch (e) {
     console.error("Error formatting date:", e, dateString);
-    return dateString.toString();
+    return dateString?.toString() || "";
   }
 };
 

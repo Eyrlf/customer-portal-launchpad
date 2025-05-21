@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Users, ShoppingCart, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
 
 interface DashboardStats {
   totalCustomers: number;
@@ -140,12 +140,7 @@ const Dashboard = () => {
               <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <BarChart className="w-12 h-12 mx-auto text-gray-300" />
-                <p className="mt-2 text-gray-500">
-                  Activity data visualization coming soon
-                </p>
-              </div>
+              <RecentActivity />
             </CardContent>
           </Card>
           

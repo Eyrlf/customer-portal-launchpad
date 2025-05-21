@@ -1,6 +1,7 @@
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { CustomersTable } from "@/components/customers/CustomersTable";
+import { CustomerGrid } from "@/components/customers/CustomerGrid";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -64,7 +65,11 @@ const CustomersPage = () => {
           </div>
         </div>
         
-        <CustomersTable sortOrder={sortOrder} />
+        {viewMode === "table" ? (
+          <CustomersTable sortOrder={sortOrder} />
+        ) : (
+          <CustomersTable sortOrder={sortOrder} viewMode="grid" />
+        )}
       </div>
     </DashboardLayout>
   );

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { CustomerDialog } from "./CustomerDialog";
 import { CustomerTableContent } from "./CustomerTableContent";
+import { CustomerGrid } from "./CustomerGrid";
 import { CustomerFilters } from "./CustomerFilters";
 import { CustomerTableActions } from "./CustomerTableActions";
 import { useCustomersData } from "./hooks/useCustomersData";
@@ -12,9 +13,10 @@ import { useCustomerActions } from "./hooks/useCustomerActions";
 
 interface CustomersTableProps {
   sortOrder?: "asc" | "desc";
+  viewMode?: "table" | "grid";
 }
 
-export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
+export function CustomersTable({ sortOrder = "asc", viewMode = "table" }: CustomersTableProps) {
   const [showDeleted, setShowDeleted] = useState(false);
   const { isAdmin, user } = useAuth();
   
@@ -104,20 +106,33 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
         showDeleted={showDeleted}
       />
       
-      <CustomerTableContent
-        loading={loading}
-        filteredCustomers={filteredCustomers}
-        showDeleted={showDeleted}
-        isAdmin={isAdmin}
-        canEditCustomer={canEditCustomer}
-        canDeleteCustomer={canDeleteCustomer}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onRestore={handleRestore}
-        sortField={sortField}
-        sortDirection={sortDirection}
-        toggleSort={toggleSort}
-      />
+      {viewMode === "table" ? (
+        <CustomerTableContent
+          loading={loading}
+          filteredCustomers={filteredCustomers}
+          showDeleted={showDeleted}
+          isAdmin={isAdmin}
+          canEditCustomer={canEditCustomer}
+          canDeleteCustomer={canDeleteCustomer}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onRestore={handleRestore}
+          sortField={sortField}
+          sortDirection={sortDirection}
+          toggleSort={toggleSort}
+        />
+      ) : (
+        <CustomerGrid
+          customers={filteredCustomers}
+          showDeleted={showDeleted}
+          isAdmin={isAdmin}
+          canEditCustomer={canEditCustomer}
+          canDeleteCustomer={canDeleteCustomer}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onRestore={handleRestore}
+        />
+      )}
       
       <CustomerDialog
         open={dialogOpen}

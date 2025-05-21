@@ -1,10 +1,10 @@
 
-import { formatDateByUserPreference } from "@/utils/dateFormatter";
+import { formatDateByUserPreference, formatDateOnlyByUserPreference } from "@/utils/dateFormatter";
 import { SalesRecord } from "../types";
 
 export const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return "N/A";
-  return formatDateByUserPreference(dateString);
+  return formatDateOnlyByUserPreference(dateString);
 };
 
 export const formatModifierInfo = (record: SalesRecord): string => {
