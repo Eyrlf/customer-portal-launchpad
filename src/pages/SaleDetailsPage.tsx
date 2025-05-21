@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -206,7 +207,7 @@ const SaleDetailsPage = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading, isAdmin, permissions } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, user, permissions } = useAuth();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -224,7 +225,7 @@ const SaleDetailsPage = () => {
         .from('sales')
         .select(`
           *,
-          customer:custno(custname, custno, address, phone, payterm)
+          customer:custno(custno, custname, address, payterm)
         `)
         .eq('transno', transno)
         .single();
@@ -234,13 +235,20 @@ const SaleDetailsPage = () => {
       // Format sale data to match SalesRecord interface
       const formattedSale: SalesRecord = {
         ...saleData,
+        customer: saleData.customer ? {
+          custno: saleData.customer.custno || saleData.custno || '',
+          custname: saleData.customer.custname || null,
+          address: saleData.customer.address || null,
+          city: null, // Add default null value for city
+          phone: null, // Add default null value for phone
+          payterm: saleData.customer.payterm || null,
+        } : null,
         created_at: saleData.created_at || new Date().toISOString(),
         created_by: saleData.created_by || null,
         deleted_by: saleData.deleted_by || null,
-        customer: {
-          ...saleData.customer,
-          city: null // Add default null value for city
-        }
+        deleted_at: saleData.deleted_at || null,
+        modified_at: saleData.modified_at || null,
+        modified_by: saleData.modified_by || null,
       };
       
       setSale(formattedSale);

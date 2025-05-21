@@ -10,7 +10,7 @@ import {
   DropdownMenuItem, DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Edit, Trash, MoreVertical, RefreshCcw, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, MoreVertical, RefreshCcw, Eye } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
@@ -24,10 +24,11 @@ import { useToast } from "@/components/ui/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 
 interface SalesTableProps {
-  sortOrder?: "asc" | "desc";
+  statusFilter?: string;
+  searchQuery?: string;
 }
 
-export function SalesTable({ sortOrder = "asc" }: SalesTableProps) {
+export function SalesTable({ statusFilter = "all", searchQuery = "" }: SalesTableProps) {
   const [showDeleted, setShowDeleted] = useState(false);
   const [selectedSale, setSelectedSale] = useState<SalesRecord | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -38,36 +39,52 @@ export function SalesTable({ sortOrder = "asc" }: SalesTableProps) {
   const navigate = useNavigate();
   
   const { 
-    sales: rawSales, 
-    deletedSales: rawDeletedSales, 
+    sales: allSales, 
+    deletedSales: allDeletedSales, 
     customers, 
     employees, 
     loading, 
     fetchSales, 
-    handleDelete: originalHandleDelete, 
-    handleRestore: originalHandleRestore 
+    handleDelete,
+    handleRestore
   } = useSalesData(showDeleted, isAdmin);
 
-  // Apply sort order to sales and deletedSales
-  const sales = useMemo(() => {
-    return [...rawSales].sort((a, b) => {
-      if (sortOrder === "asc") {
-        return a.transno.localeCompare(b.transno);
-      } else {
-        return b.transno.localeCompare(a.transno);
-      }
-    });
-  }, [rawSales, sortOrder]);
+  // Filter sales based on status and search query
+  const filteredSales = useMemo(() => {
+    let filtered = [...allSales];
+    
+    // Apply status filter if not set to 'all'
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(sale => {
+        const status = getRecordStatus(sale).toLowerCase();
+        return status === statusFilter.toLowerCase();
+      });
+    }
+    
+    // Apply search filter if query exists
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(sale => 
+        sale.transno.toLowerCase().includes(query) || 
+        sale.customer?.custname?.toLowerCase().includes(query) ||
+        (sale.total_amount?.toString().includes(query))
+      );
+    }
+    
+    return filtered;
+  }, [allSales, statusFilter, searchQuery]);
 
-  const deletedSales = useMemo(() => {
-    return [...rawDeletedSales].sort((a, b) => {
-      if (sortOrder === "asc") {
-        return a.transno.localeCompare(b.transno);
-      } else {
-        return b.transno.localeCompare(a.transno);
-      }
-    });
-  }, [rawDeletedSales, sortOrder]);
+  // Filter deleted sales based on search query
+  const filteredDeletedSales = useMemo(() => {
+    if (!searchQuery) return allDeletedSales;
+    
+    const query = searchQuery.toLowerCase();
+    return allDeletedSales.filter(sale => 
+      sale.transno.toLowerCase().includes(query) || 
+      sale.customer?.custname?.toLowerCase().includes(query) ||
+      (sale.total_amount?.toString().includes(query))
+    );
+  }, [allDeletedSales, searchQuery]);
 
   useEffect(() => {
     if (user && !isAdmin) {
@@ -91,11 +108,6 @@ export function SalesTable({ sortOrder = "asc" }: SalesTableProps) {
       });
     }
   }, [isAdmin, user]);
-
-  // Refetch data when sort order changes
-  useEffect(() => {
-    fetchSales();
-  }, [sortOrder]);
 
   const fetchUserPermissions = async () => {
     if (!user) return;
@@ -164,32 +176,6 @@ export function SalesTable({ sortOrder = "asc" }: SalesTableProps) {
     setDialogOpen(true);
   };
 
-  const handleDelete = (sale: SalesRecord) => {
-    if (!userPermissions?.can_delete_sales && !isAdmin) {
-      toast({
-        title: "Permission Denied",
-        description: "You don't have permission to delete sales.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    originalHandleDelete(sale);
-  };
-
-  const handleRestore = (sale: SalesRecord) => {
-    if (!isAdmin) {
-      toast({
-        title: "Permission Denied",
-        description: "Only administrators can restore deleted sales.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    originalHandleRestore(sale);
-  };
-
   const handleFormSuccess = () => {
     setDialogOpen(false);
     fetchSales();
@@ -199,12 +185,13 @@ export function SalesTable({ sortOrder = "asc" }: SalesTableProps) {
     if (sale.deleted_at) return 'Deleted';
     
     if (sale.modified_by !== null && sale.modified_at !== null) {
-      // In a real implementation, we would check activity logs
-      // For now, if it has been modified, we'll consider it edited
       return 'Edited';
     }
+
+    if (sale.deleted_at !== null && sale.deleted_by === null) {
+      return 'Restored';
+    }
     
-    // If no modification flags are set, it's a newly added record
     return 'Added';
   };
 
@@ -212,12 +199,12 @@ export function SalesTable({ sortOrder = "asc" }: SalesTableProps) {
   const canEditSale = isAdmin || (userPermissions?.can_edit_sales || false);
   const canDeleteSale = isAdmin || (userPermissions?.can_delete_sales || false);
 
-  const displayedSales = showDeleted ? deletedSales : sales;
+  const displayedSales = showDeleted ? filteredDeletedSales : filteredSales;
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 dark:bg-gray-800">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Sales</h2>
+    <div className="bg-white rounded-lg shadow dark:bg-gray-800">
+      <div className="flex justify-between items-center p-4 border-b">
+        <h2 className="text-lg font-medium">Transactions</h2>
         <div className="flex gap-2">
           {isAdmin && (
             <Button
@@ -227,22 +214,10 @@ export function SalesTable({ sortOrder = "asc" }: SalesTableProps) {
               {showDeleted ? "Show Active" : "Show Deleted"}
             </Button>
           )}
-          {canAddSale && (
-            <Button
-              onClick={() => {
-                setIsEditing(false);
-                setSelectedSale(null);
-                setDialogOpen(true);
-              }}
-            >
-              <Plus size={16} className="mr-2" /> Add Sale
-            </Button>
-          )}
         </div>
       </div>
       
       <Table>
-        <TableCaption>{loading ? 'Loading sales...' : 'List of sales transactions.'}</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead>Transaction No</TableHead>
@@ -327,7 +302,7 @@ export function SalesTable({ sortOrder = "asc" }: SalesTableProps) {
                           )}
                           {(userPermissions?.can_delete_sales || isAdmin) && (
                             <DropdownMenuItem onClick={() => handleDelete(sale)}>
-                              <Trash className="mr-2 h-4 w-4" />
+                              <Trash2 className="mr-2 h-4 w-4" />
                               Delete
                             </DropdownMenuItem>
                           )}

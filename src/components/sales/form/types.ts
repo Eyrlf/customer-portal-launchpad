@@ -13,6 +13,7 @@ export const formSchema = z.object({
       prodcode: z.string().min(1, "Product is required"),
       quantity: z.number().min(1, "Quantity must be at least 1"),
       deleted_at: z.string().nullable().optional(),
+      deleted_by: z.string().nullable().optional(),
     })
   ),
 });

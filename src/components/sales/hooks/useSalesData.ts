@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -20,7 +21,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
         .select(`
           *,
           customer:custno(custno, custname, address, payterm),
-          employee:empno(firstname, lastname)
+          employee:empno(empno, firstname, lastname)
         `)
         .is('deleted_at', null);
       
@@ -100,7 +101,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
 
         // Create a proper customer object that matches our Customer interface
         const customerData = sale.customer ? {
-          custno: sale.custno || '',
+          custno: sale.customer.custno || sale.custno || '',
           custname: sale.customer.custname || null,
           address: sale.customer.address || null,
           city: null, // Add default values for properties not in DB
@@ -108,15 +109,29 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           payterm: sale.customer.payterm || null
         } : null;
 
+        // Make sure employee data has all required fields
+        const employeeData = sale.employee ? {
+          empno: sale.employee.empno || sale.empno || '',
+          firstname: sale.employee.firstname || null,
+          lastname: sale.employee.lastname || null,
+          empname: sale.employee.firstname && sale.employee.lastname ? 
+            `${sale.employee.firstname} ${sale.employee.lastname}` : null,
+          position: null
+        } : undefined;
+
         const enhancedSale: SalesRecord = {
           ...sale,
           customer: customerData,
+          employee: employeeData,
           modifier: modifierData,
           total_amount: totalAmount,
           payment_status: paymentStatus,
           created_at: sale.created_at || new Date().toISOString(),
           created_by: sale.created_by || null,
-          deleted_by: sale.deleted_by || null
+          deleted_by: sale.deleted_by || null,
+          deleted_at: sale.deleted_at || null,
+          modified_at: sale.modified_at || null,
+          modified_by: sale.modified_by || null
         };
 
         return enhancedSale;
@@ -131,7 +146,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           .select(`
             *,
             customer:custno(custno, custname, address, payterm),
-            employee:empno(firstname, lastname)
+            employee:empno(empno, firstname, lastname)
           `)
           .not('deleted_at', 'is', null);
         
@@ -189,7 +204,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           
           // Create a proper customer object
           const customerData = sale.customer ? {
-            custno: sale.custno || '',
+            custno: sale.customer.custno || sale.custno || '',
             custname: sale.customer.custname || null,
             address: sale.customer.address || null,
             city: null,
@@ -197,14 +212,28 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
             payterm: sale.customer.payterm || null
           } : null;
           
+          // Ensure employee data has all required fields
+          const employeeData = sale.employee ? {
+            empno: sale.employee.empno || sale.empno || '',
+            firstname: sale.employee.firstname || null,
+            lastname: sale.employee.lastname || null,
+            empname: sale.employee.firstname && sale.employee.lastname ? 
+              `${sale.employee.firstname} ${sale.employee.lastname}` : null,
+            position: null
+          } : undefined;
+          
           const enhancedDeletedSale: SalesRecord = {
             ...sale,
             customer: customerData,
+            employee: employeeData,
             modifier: modifierData,
             total_amount: totalAmount,
             created_at: sale.created_at || new Date().toISOString(),
             created_by: sale.created_by || null,
-            deleted_by: sale.deleted_by || null
+            deleted_by: sale.deleted_by || null,
+            deleted_at: sale.deleted_at || null,
+            modified_at: sale.modified_at || null,
+            modified_by: sale.modified_by || null
           };
           
           return enhancedDeletedSale;
@@ -274,9 +303,12 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
 
   const handleDelete = async (sale: SalesRecord) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('sales')
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          deleted_by: (await supabase.auth.getUser()).data.user?.id
+        })
         .eq('transno', sale.transno);
       
       if (error) throw error;
@@ -307,9 +339,12 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
 
   const handleRestore = async (sale: SalesRecord) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('sales')
-        .update({ deleted_at: null })
+        .update({ 
+          deleted_at: null,
+          deleted_by: null
+        })
         .eq('transno', sale.transno);
       
       if (error) throw error;
@@ -342,14 +377,13 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
     if (sale.deleted_at) return 'Deleted';
     
     if (sale.modified_by !== null && sale.modified_at !== null) {
-      // Check action from activity logs to determine if this was a restore or edit
-      // Since we can't directly query activity logs here, we make an assumption
-      // A real implementation would check the action column in activity_logs
-      // For now, we use a simplified check - if it was modified after creation, it's edited
       return 'Edited';
     }
+
+    if (sale.deleted_at !== null && sale.deleted_by === null) {
+      return 'Restored';
+    }
     
-    // If no modification flags are set, it's a newly added record
     return 'Added';
   };
 
@@ -366,8 +400,8 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
     employees,
     loading,
     fetchSales,
-    handleDelete: (sale: SalesRecord) => {/* ... keep existing code */},
-    handleRestore: (sale: SalesRecord) => {/* ... keep existing code */},
-    getRecordStatus: (sale: SalesRecord) => {/* ... keep existing code */}
+    handleDelete,
+    handleRestore,
+    getRecordStatus
   };
 }

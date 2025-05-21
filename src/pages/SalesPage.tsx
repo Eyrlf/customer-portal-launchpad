@@ -12,16 +12,18 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SaleForm } from "@/components/sales/SaleForm";
+import { supabase } from "@/integrations/supabase/client";
 
 const SalesPage = () => {
   const { isAuthenticated, isLoading, isAdmin, user } = useAuth();
   const navigate = useNavigate();
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [userPermissions, setUserPermissions] = useState<any>(null);
 
@@ -93,32 +95,46 @@ const SalesPage = () => {
     <DashboardLayout>
       <ScrollArea className="h-[calc(100vh-80px)]">
         <div className="p-6">
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-6 flex justify-between items-center">
             <h1 className="text-3xl font-bold">Sales</h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="sort-order">Sort by Transaction No:</Label>
-                <Select
-                  value={sortOrder}
-                  onValueChange={(value: "asc" | "desc") => setSortOrder(value)}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Sort Order" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="asc">Ascending</SelectItem>
-                    <SelectItem value="desc">Descending</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="flex space-x-4">
               {canAddSale && (
-                <Button onClick={() => setDialogOpen(true)} className="bg-blue-500 hover:bg-blue-600">
-                  <Plus size={20} className="mr-2" /> New Sale
+                <Button onClick={() => setDialogOpen(true)} className="bg-gray-900 hover:bg-gray-800">
+                  <Plus size={20} className="mr-2" /> Add Sale
                 </Button>
               )}
             </div>
           </div>
-          <SalesTable sortOrder={sortOrder} />
+          
+          <div className="mb-4 flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                <Input 
+                  placeholder="Search transactions..." 
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+            <Select 
+              value={statusFilter} 
+              onValueChange={setStatusFilter}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filter by Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="added">Added</SelectItem>
+                <SelectItem value="edited">Edited</SelectItem>
+                <SelectItem value="restored">Restored</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <SalesTable statusFilter={statusFilter} searchQuery={searchQuery} />
         </div>
       </ScrollArea>
 
