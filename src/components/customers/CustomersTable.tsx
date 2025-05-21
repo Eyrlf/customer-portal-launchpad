@@ -19,6 +19,7 @@ import {
   updateCustomer,
   deleteCustomer,
   restoreCustomer,
+  getCustomerStatus
 } from "./CustomerService";
 import { CustomerTableRow } from "./CustomerTableRow";
 import { CustomerDialog } from "./CustomerDialog";
@@ -269,7 +270,7 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
       const restoredCustomer = {
         ...customer,
         deleted_at: null,
-        action: 'restore'
+        action: 'restore'  // This ensures the status shows as "Restored"
       };
       
       // Update the customers list to include the restored customer
