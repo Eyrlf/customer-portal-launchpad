@@ -266,7 +266,7 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
         description: `Customer ${customer.custname} has been restored.`,
       });
       
-      // Add the restored customer to the active customers list with the 'restore' action
+      // Create a restored customer object with the proper action flag
       const restoredCustomer = {
         ...customer,
         deleted_at: null,

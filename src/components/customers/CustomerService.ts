@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CustomerFormValues } from "./CustomerForm";
 
@@ -209,7 +210,7 @@ export function getCustomerStatus(customer: Customer) {
   // If deleted, return 'Deleted'
   if (customer.deleted_at) return 'Deleted';
   
-  // If it has the restore action, return 'Restored'
+  // Check for restore action first (highest priority)
   if (customer.action === 'restore') {
     return 'Restored';
   }
