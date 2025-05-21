@@ -1,4 +1,6 @@
 
+import { z } from "zod";
+
 // Allow for the error case in the modifier type
 export type UserModifier = {
   email: string;
