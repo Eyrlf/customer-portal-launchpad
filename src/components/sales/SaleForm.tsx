@@ -109,9 +109,9 @@ export function SaleForm({
         transno: "",
         salesdate: new Date(),
         custno: null,
-        items: [{ prodcode: "", quantity: 1, id: undefined, deleted_at: null }],
+        items: [],
       });
-      setSaleItems([{ prodcode: "", quantity: 1, unitprice: 0 }]);
+      setSaleItems([]);
       setDeletedItems([]);
     }
   }, [selectedSale, isEditing, form]);
@@ -238,6 +238,8 @@ export function SaleForm({
         );
         
         setSaleItems(items);
+        
+        // Update form with items data including id field
         form.setValue('items', items.map(item => ({ 
           id: item.id,
           prodcode: item.prodcode, 
@@ -473,10 +475,30 @@ export function SaleForm({
     }
     
     const newItem = { prodcode: "", quantity: 1, unitprice: 0 };
-    setSaleItems([...saleItems, newItem]);
+    const updatedItems = [...saleItems, newItem];
+    setSaleItems(updatedItems);
     
     const currentItems = form.getValues('items') || [];
-    form.setValue('items', [...currentItems, { prodcode: "", quantity: 1, id: undefined, deleted_at: null }]);
+    const newFormItem = { 
+      prodcode: "", 
+      quantity: 1, 
+      id: undefined, 
+      deleted_at: null 
+    };
+    form.setValue('items', [...currentItems, newFormItem]);
+  };
+
+  const handleEditProduct = (index: number) => {
+    // Check edit permission
+    if (!permissions?.can_edit_salesdetails && !isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit items.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setEditingItemIndex(index);
   };
 
   const handleRemoveProduct = (index: number) => {
@@ -512,6 +534,16 @@ export function SaleForm({
   };
   
   const handleSoftDeleteItem = async (item: SaleItem, index: number) => {
+    // Check permission
+    if (!permissions?.can_delete_salesdetails && !isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to delete items.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!item.id) return;
     
     try {
@@ -559,6 +591,16 @@ export function SaleForm({
   };
   
   const handleRestoreItem = async (item: SaleItem, index: number) => {
+    // Check permission - only admins can restore items
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can restore deleted items.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!item.id) return;
     
     try {
@@ -584,12 +626,13 @@ export function SaleForm({
       
       // Update form values
       const currentItems = form.getValues('items');
-      form.setValue('items', [...currentItems, { 
+      const newItem = { 
         id: restoredItem.id,
         prodcode: restoredItem.prodcode, 
         quantity: restoredItem.quantity,
         deleted_at: null
-      }]);
+      };
+      form.setValue('items', [...currentItems, newItem]);
       
       calculateTotal([...saleItems, restoredItem]);
       
@@ -688,7 +731,7 @@ export function SaleForm({
 
   // Only show active items by default, toggle for deleted items
   const displayedItems = showDeleted ? deletedItems : saleItems;
-  const canAddItems = isAdmin || permissions?.can_add_salesdetails;
+  const canAddItems = permissions?.can_add_salesdetails || isAdmin;
 
   return (
     <ScrollArea className="max-h-[70vh] pr-4">
@@ -786,7 +829,7 @@ export function SaleForm({
                     {showDeleted ? "Show Active Items" : "Show Deleted Items"}
                   </Button>
                 )}
-                {canAddItems && !showDeleted && (
+                {!showDeleted && canAddItems && (
                   <Button 
                     type="button" 
                     variant="outline" 
@@ -847,29 +890,19 @@ export function SaleForm({
                   </div>
                   
                   <div className="mb-1">
-                    {showDeleted ? (
-                      isAdmin && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleRestoreItem(item, index)}
-                        >
-                          <RefreshCcw size={16} />
-                        </Button>
-                      )
-                    ) : (
-                      (isAdmin || permissions?.can_delete_salesdetails) && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveProduct(index)}
-                        >
-                          <Trash size={16} />
-                        </Button>
-                      )
-                    )}
+                    <SalesDetailActions
+                      item={{
+                        id: item.id || "",
+                        transno: selectedSale?.transno || "",
+                        prodcode: item.prodcode,
+                        quantity: item.quantity,
+                        deleted_at: item.deleted_at
+                      }}
+                      onEdit={() => handleEditProduct(index)}
+                      onDelete={() => handleRemoveProduct(index)}
+                      onRestore={() => handleRestoreItem(item, index)}
+                      showDeleted={showDeleted}
+                    />
                   </div>
                 </div>
               ))
