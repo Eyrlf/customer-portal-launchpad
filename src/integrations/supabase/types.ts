@@ -9,23 +9,56 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          record_id: string
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          record_id: string
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          record_id?: string
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       customer: {
         Row: {
           address: string | null
           custname: string | null
           custno: string
+          deleted_at: string | null
           payterm: string | null
         }
         Insert: {
           address?: string | null
           custname?: string | null
           custno: string
+          deleted_at?: string | null
           payterm?: string | null
         }
         Update: {
           address?: string | null
           custname?: string | null
           custno?: string
+          deleted_at?: string | null
           payterm?: string | null
         }
         Relationships: []
@@ -136,6 +169,33 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payment: {
         Row: {
           amount: number | null
@@ -209,21 +269,51 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sales: {
         Row: {
           custno: string | null
+          deleted_at: string | null
           empno: string | null
           salesdate: string | null
           transno: string
         }
         Insert: {
           custno?: string | null
+          deleted_at?: string | null
           empno?: string | null
           salesdate?: string | null
           transno: string
         }
         Update: {
           custno?: string | null
+          deleted_at?: string | null
           empno?: string | null
           salesdate?: string | null
           transno?: string
@@ -283,7 +373,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      log_activity: {
+        Args: {
+          action: string
+          table_name: string
+          record_id: string
+          details: Json
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
