@@ -42,6 +42,9 @@ export interface Customer {
   payterm?: string | null;
   deleted_at?: string | null;
   deleted_by?: string | null;
+  modified_at?: string | null;
+  modified_by?: string | null;
+  action?: string;
 }
 
 export interface SalesRecord {

@@ -32,9 +32,17 @@ export function CustomerForm({
   onCancel,
   isEditing
 }: CustomerFormProps) {
+  // Ensure defaultValues is never undefined
+  const formValues: CustomerFormValues = {
+    custno: defaultValues?.custno || "",
+    custname: defaultValues?.custname || "",
+    address: defaultValues?.address || "",
+    payterm: defaultValues?.payterm || "COD",
+  };
+
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
-    defaultValues,
+    defaultValues: formValues,
   });
 
   return (
@@ -47,7 +55,7 @@ export function CustomerForm({
             <FormItem>
               <FormLabel>Customer No</FormLabel>
               <FormControl>
-                <Input {...field} disabled={true} />
+                <Input {...field} disabled={isEditing} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -90,7 +98,7 @@ export function CustomerForm({
               <FormLabel>Payment Term</FormLabel>
               <Select
                 onValueChange={field.onChange}
-                defaultValue={field.value}
+                defaultValue={field.value || "COD"}
               >
                 <FormControl>
                   <SelectTrigger className="w-40">

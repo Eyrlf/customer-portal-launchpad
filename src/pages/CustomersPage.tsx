@@ -12,34 +12,69 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { CustomerGrid } from '@/components/customers/CustomerGrid';
 import { Customer } from '@/components/customers/CustomerService';
+import { useToast } from '@/hooks/use-toast';
 
 const CustomersPage = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const { toast } = useToast();
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const { customers, isLoading, error, refetch } = useCustomersData();
-  const { userPermissions, canAddCustomer, canEditCustomer, canDeleteCustomer } = useCustomerPermissions();
+  
+  // Custom hooks for data management
   const { 
-    selectedCustomer, 
-    isEditing, 
-    dialogOpen, 
-    formDefaults, 
-    setDialogOpen, 
-    handleOpenDialog,
-    handleCloseDialog,
+    customers, 
+    deletedCustomers, 
+    loading, 
+    addCustomer, 
+    updateCustomer, 
+    removeCustomerFromActive,
+    removeCustomerFromDeleted,
+    loadCustomersData 
+  } = useCustomersData(showDeleted, isAdmin);
+  
+  const [showDeleted, setShowDeleted] = useState(false);
+
+  // Custom hook for permissions
+  const { 
+    canAddCustomer, 
+    canEditCustomer, 
+    canDeleteCustomer 
+  } = useCustomerPermissions();
+
+  // Custom hook for customer actions
+  const {
+    selectedCustomer,
+    isEditing,
+    dialogOpen,
+    formDefaults,
+    setDialogOpen,
+    prepareNewCustomerForm,
     handleEdit,
     handleDelete,
-    handleView,
-    handleSubmit,
-    isDeleting,
-    getCustomerStatus
-  } = useCustomerActions({ onSuccess: refetch });
+    handleRestore,
+    handleSubmit
+  } = useCustomerActions({
+    isAdmin,
+    canAddCustomer,
+    canEditCustomer,
+    canDeleteCustomer,
+    addCustomer,
+    updateCustomer,
+    removeCustomerFromActive,
+    removeCustomerFromDeleted,
+    loadCustomersData
+  });
 
-  if (error) {
+  // Handler for viewing customer details
+  const handleView = (customer: Customer) => {
+    navigate(`/dashboard/customers/${customer.custno}`);
+  };
+
+  if (loading) {
     return (
       <DashboardLayout>
         <div className="text-center p-6">
-          <p className="text-red-500">Failed to load customers</p>
+          <p>Loading customers...</p>
         </div>
       </DashboardLayout>
     );
@@ -70,7 +105,7 @@ const CustomersPage = () => {
               </Button>
             </div>
             {canAddCustomer && (
-              <Button onClick={() => handleOpenDialog(false)}>
+              <Button onClick={prepareNewCustomerForm}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Customer
               </Button>
@@ -79,23 +114,17 @@ const CustomersPage = () => {
         </div>
 
         {viewMode === 'table' ? (
-          <CustomersTable
-            customers={customers}
-            isLoading={isLoading}
-            onDelete={handleDelete}
-            onEdit={handleEdit}
-            onView={handleView}
-            getCustomerStatus={getCustomerStatus}
-            isDeleting={isDeleting}
+          <CustomersTable 
+            sortOrder="asc"
+            viewMode="table"
           />
         ) : (
           <CustomerGrid
-            customers={customers as Customer[]}
+            customers={customers}
             onDelete={handleDelete}
             onEdit={handleEdit}
             onView={handleView}
-            getCustomerStatus={getCustomerStatus}
-            isDeleting={isDeleting}
+            isDeleting={false}
             isAdmin={isAdmin}
           />
         )}
@@ -103,7 +132,7 @@ const CustomersPage = () => {
         <CustomerDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          defaultValues={formDefaults}
+          formDefaults={formDefaults}
           isEditing={isEditing}
           onSubmit={handleSubmit}
         />
