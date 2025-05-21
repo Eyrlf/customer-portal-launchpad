@@ -1,4 +1,3 @@
-
 // Allow for the error case in the modifier type
 export type UserModifier = {
   email: string;
@@ -64,6 +63,9 @@ export interface UserPermission {
   can_add_sales: boolean;
   can_edit_sales: boolean;
   can_delete_sales: boolean;
+  can_add_salesdetails: boolean;
+  can_edit_salesdetails: boolean;
+  can_delete_salesdetails: boolean;
   created_at: string;
   updated_at: string;
 }

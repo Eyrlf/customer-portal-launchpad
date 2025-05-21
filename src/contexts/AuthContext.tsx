@@ -106,6 +106,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           can_add_sales: true,
           can_edit_sales: true,
           can_delete_sales: true,
+          can_add_salesdetails: true,
+          can_edit_salesdetails: true,
+          can_delete_salesdetails: true,
           created_at: "",
           updated_at: ""
         });
@@ -141,6 +144,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           can_add_sales: false,
           can_edit_sales: false,
           can_delete_sales: false,
+          can_add_salesdetails: false,
+          can_edit_salesdetails: false,
+          can_delete_salesdetails: false,
           created_at: "",
           updated_at: ""
         });
@@ -148,7 +154,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data) {
-        setPermissions(data as UserPermission);
+        // Handle case where new permissions don't exist in old records
+        setPermissions({
+          ...data,
+          can_add_salesdetails: data.can_add_salesdetails || false,
+          can_edit_salesdetails: data.can_edit_salesdetails || false,
+          can_delete_salesdetails: data.can_delete_salesdetails || false
+        } as UserPermission);
       }
     } catch (error) {
       console.error('Error fetching user permissions:', error);

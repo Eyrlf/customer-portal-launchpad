@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -31,6 +32,9 @@ const formSchema = z.object({
   can_add_sales: z.boolean(),
   can_edit_sales: z.boolean(),
   can_delete_sales: z.boolean(),
+  can_add_salesdetails: z.boolean(),
+  can_edit_salesdetails: z.boolean(),
+  can_delete_salesdetails: z.boolean(),
 });
 
 export function UserPermissionsDialog({
@@ -51,6 +55,9 @@ export function UserPermissionsDialog({
       can_add_sales: false,
       can_edit_sales: false,
       can_delete_sales: false,
+      can_add_salesdetails: false,
+      can_edit_salesdetails: false,
+      can_delete_salesdetails: false,
     },
   });
 
@@ -87,8 +94,12 @@ export function UserPermissionsDialog({
           can_add_sales: false,
           can_edit_sales: false,
           can_delete_sales: false,
+          can_add_salesdetails: false,
+          can_edit_salesdetails: false,
+          can_delete_salesdetails: false,
         });
       } else if (data) {
+        // Populate existing values
         form.reset({
           can_add_customers: data.can_add_customers,
           can_edit_customers: data.can_edit_customers,
@@ -96,6 +107,9 @@ export function UserPermissionsDialog({
           can_add_sales: data.can_add_sales,
           can_edit_sales: data.can_edit_sales,
           can_delete_sales: data.can_delete_sales,
+          can_add_salesdetails: data.can_add_salesdetails || false,
+          can_edit_salesdetails: data.can_edit_salesdetails || false,
+          can_delete_salesdetails: data.can_delete_salesdetails || false,
         });
       }
     } catch (error) {
@@ -298,6 +312,74 @@ export function UserPermissionsDialog({
                           <FormLabel>Delete Sales</FormLabel>
                           <FormDescription>
                             Allow user to delete sales
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Sales Details Permissions</h3>
+                <div className="space-y-3">
+                  <FormField
+                    control={form.control}
+                    name="can_add_salesdetails"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>Add Sales Details</FormLabel>
+                          <FormDescription>
+                            Allow user to add items to sales
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="can_edit_salesdetails"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>Edit Sales Details</FormLabel>
+                          <FormDescription>
+                            Allow user to modify sales items
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="can_delete_salesdetails"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>Delete Sales Details</FormLabel>
+                          <FormDescription>
+                            Allow user to remove items from sales
                           </FormDescription>
                         </div>
                         <FormControl>
