@@ -4,6 +4,7 @@ import { SalesTable } from "@/components/sales/SalesTable";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const SalesPage = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -29,7 +30,9 @@ const SalesPage = () => {
 
   return (
     <DashboardLayout>
-      <SalesTable />
+      <ScrollArea className="h-[calc(100vh-80px)]">
+        <SalesTable />
+      </ScrollArea>
     </DashboardLayout>
   );
 };

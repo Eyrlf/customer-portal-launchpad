@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +23,7 @@ import { CalendarIcon, Plus, Trash } from "lucide-react";
 import {
   DialogFooter
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Product {
   prodcode: string;
@@ -69,6 +69,7 @@ export function SaleForm({
   const [products, setProducts] = useState<Product[]>([]);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -98,7 +99,7 @@ export function SaleForm({
         custno: null,
         items: [{ prodcode: "", quantity: 1 }],
       });
-      setSaleItems([]);
+      setSaleItems([{ prodcode: "", quantity: 1, unitprice: 0 }]);
     }
   }, [selectedSale, isEditing, form]);
 
@@ -231,6 +232,23 @@ export function SaleForm({
 
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      // Prevent double submission
+      if (isSubmitting) return;
+      setIsSubmitting(true);
+      
+      console.log("Submitting form with values:", values);
+      
+      // Validate that we have at least one item with a valid product code
+      if (!values.items || values.items.length === 0 || !values.items.some(item => item.prodcode)) {
+        toast({
+          title: "Error",
+          description: "Please add at least one product to the sale.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
       if (isEditing && selectedSale) {
         // Update existing sale
         const { error } = await supabase
@@ -243,7 +261,10 @@ export function SaleForm({
           })
           .eq('transno', selectedSale.transno);
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error updating sale:", error);
+          throw error;
+        }
         
         // Delete existing sale details
         const { error: deleteError } = await supabase
@@ -251,21 +272,31 @@ export function SaleForm({
           .delete()
           .eq('transno', selectedSale.transno);
         
-        if (deleteError) throw deleteError;
+        if (deleteError) {
+          console.error("Error deleting sale details:", deleteError);
+          throw deleteError;
+        }
         
         // Insert new sale details
         if (saleItems.length > 0) {
-          const { error: insertError } = await supabase
-            .from('salesdetail')
-            .insert(
-              saleItems.map(item => ({
-                transno: selectedSale.transno,
-                prodcode: item.prodcode,
-                quantity: item.quantity,
-              }))
-            );
-          
-          if (insertError) throw insertError;
+          const detailsToInsert = saleItems
+            .filter(item => item.prodcode) // Only include items with a product code
+            .map(item => ({
+              transno: selectedSale.transno,
+              prodcode: item.prodcode,
+              quantity: item.quantity,
+            }));
+            
+          if (detailsToInsert.length > 0) {
+            const { error: insertError } = await supabase
+              .from('salesdetail')
+              .insert(detailsToInsert);
+            
+            if (insertError) {
+              console.error("Error inserting sale details:", insertError);
+              throw insertError;
+            }
+          }
         }
         
         toast({
@@ -281,8 +312,19 @@ export function SaleForm({
           details: JSON.stringify({...values, total_amount: totalAmount}),
         });
       } else {
-        // Create new sale - make sure we're setting the necessary fields
+        // Create new sale
         console.log("Creating new sale with values:", values);
+        
+        // Make sure transno is not empty
+        if (!values.transno) {
+          toast({
+            title: "Error",
+            description: "Transaction number is required.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
         
         const { error } = await supabase
           .from('sales')
@@ -300,6 +342,7 @@ export function SaleForm({
               description: "Transaction number already exists.",
               variant: "destructive",
             });
+            setIsSubmitting(false);
             return;
           }
           throw error;
@@ -309,19 +352,23 @@ export function SaleForm({
         
         // Insert sale details
         if (saleItems.length > 0) {
-          const { error: insertError } = await supabase
-            .from('salesdetail')
-            .insert(
-              saleItems.map(item => ({
-                transno: values.transno,
-                prodcode: item.prodcode,
-                quantity: item.quantity,
-              }))
-            );
-          
-          if (insertError) {
-            console.error("Error inserting sale details:", insertError);
-            throw insertError;
+          const detailsToInsert = saleItems
+            .filter(item => item.prodcode) // Only include items with a product code
+            .map(item => ({
+              transno: values.transno,
+              prodcode: item.prodcode,
+              quantity: item.quantity,
+            }));
+            
+          if (detailsToInsert.length > 0) {
+            const { error: insertError } = await supabase
+              .from('salesdetail')
+              .insert(detailsToInsert);
+            
+            if (insertError) {
+              console.error("Error inserting sale details:", insertError);
+              throw insertError;
+            }
           }
         }
         
@@ -339,9 +386,11 @@ export function SaleForm({
         });
       }
       
+      setIsSubmitting(false);
       onSubmitSuccess();
     } catch (error) {
       console.error('Error submitting sale:', error);
+      setIsSubmitting(false);
       toast({
         title: "Error",
         description: "Failed to save sale data.",
@@ -430,164 +479,171 @@ export function SaleForm({
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="transno"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Transaction No</FormLabel>
-              <FormControl>
-                <Input {...field} disabled={true} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="salesdate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Sale Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value || undefined}
-                    onSelect={field.onChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="custno"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Customer</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value || undefined}
-              >
+    <ScrollArea className="max-h-[70vh] pr-4">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="transno"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Transaction No</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a customer" />
-                  </SelectTrigger>
+                  <Input {...field} disabled={true} />
                 </FormControl>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.custno} value={customer.custno}>
-                      {customer.custname} ({customer.custno})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <FormLabel>Products</FormLabel>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm" 
-              onClick={handleAddProduct}
-            >
-              <Plus size={16} className="mr-2" /> Add Product
-            </Button>
-          </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           
-          {saleItems.map((item, index) => (
-            <div key={index} className="flex gap-2 mb-3 items-end">
-              <div className="flex-grow space-y-2">
-                <FormLabel className="text-xs">Product</FormLabel>
+          <FormField
+            control={form.control}
+            name="salesdate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Sale Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value || undefined}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="custno"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Customer</FormLabel>
                 <Select
-                  value={item.prodcode}
-                  onValueChange={(value) => handleProductChange(index, value)}
+                  onValueChange={field.onChange}
+                  defaultValue={field.value || undefined}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select product" />
-                  </SelectTrigger>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a customer" />
+                    </SelectTrigger>
+                  </FormControl>
                   <SelectContent>
-                    {products.map((product) => (
-                      <SelectItem key={product.prodcode} value={product.prodcode}>
-                        {product.description} ({product.prodcode}) - ${product.unitprice?.toFixed(2)}
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.custno} value={customer.custno}>
+                        {customer.custname} ({customer.custno})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              
-              <div className="w-20 space-y-2">
-                <FormLabel className="text-xs">Qty</FormLabel>
-                <Input
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 1)}
-                />
-              </div>
-              
-              <div className="w-20 space-y-2">
-                <FormLabel className="text-xs">Price</FormLabel>
-                <Input
-                  type="text"
-                  value={`$${getProductPrice(item.prodcode).toFixed(2)}`}
-                  disabled
-                />
-              </div>
-              
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemoveProduct(index)}
-                className="mb-1"
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <FormLabel>Products</FormLabel>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAddProduct}
               >
-                <Trash size={16} />
+                <Plus size={16} className="mr-2" /> Add Product
               </Button>
             </div>
-          ))}
-
-          <div className="mt-4 p-3 bg-gray-50 rounded-md">
-            <div className="flex justify-between items-center font-medium">
-              <span>Total Amount:</span>
-              <span className="text-lg">${totalAmount.toFixed(2)}</span>
+            
+            {saleItems.map((item, index) => (
+              <div key={index} className="flex gap-2 mb-3 items-end">
+                <div className="flex-grow space-y-2">
+                  <FormLabel className="text-xs">Product</FormLabel>
+                  <Select
+                    value={item.prodcode}
+                    onValueChange={(value) => handleProductChange(index, value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((product) => (
+                        <SelectItem key={product.prodcode} value={product.prodcode}>
+                          {product.description} ({product.prodcode}) - ${product.unitprice?.toFixed(2)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="w-20 space-y-2">
+                  <FormLabel className="text-xs">Qty</FormLabel>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 1)}
+                  />
+                </div>
+                
+                <div className="w-20 space-y-2">
+                  <FormLabel className="text-xs">Price</FormLabel>
+                  <Input
+                    type="text"
+                    value={`$${getProductPrice(item.prodcode).toFixed(2)}`}
+                    disabled
+                  />
+                </div>
+                
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveProduct(index)}
+                  className="mb-1"
+                >
+                  <Trash size={16} />
+                </Button>
+              </div>
+            ))}
+            
+            <div className="mt-4 p-3 bg-gray-50 rounded-md">
+              <div className="flex justify-between items-center font-medium">
+                <span>Total Amount:</span>
+                <span className="text-lg">${totalAmount.toFixed(2)}</span>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button type="submit">{isEditing ? 'Update' : 'Create'}</Button>
-        </DialogFooter>
-      </form>
-    </Form>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Processing...' : isEditing ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </Form>
+    </ScrollArea>
   );
 }
