@@ -8,6 +8,8 @@ import { Plus } from "lucide-react";
 import { Product, SaleItem } from "../types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { SalesDetailActions } from "../SalesDetailActions";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SaleItemListProps {
   items: SaleItem[];
@@ -34,11 +36,15 @@ export function SaleItemList({
   onProductChange,
   onQuantityChange
 }: SaleItemListProps) {
+  const { isAdmin, permissions } = useAuth();
+  
+  const canAddSalesDetail = isAdmin || permissions?.can_add_salesdetails;
+
   return (
     <div>
       <div className="flex justify-between items-center mb-2">
         <FormLabel>Products</FormLabel>
-        {!showDeleted && (
+        {!showDeleted && canAddSalesDetail && (
           <Button 
             type="button" 
             variant="outline" 
@@ -94,6 +100,21 @@ export function SaleItemList({
                 type="text"
                 value={`$${item.unitprice.toFixed(2)}`}
                 disabled
+              />
+            </div>
+            
+            <div className="flex items-end pb-1">
+              <SalesDetailActions
+                item={{
+                  transno: selectedSaleTransno,
+                  prodcode: item.prodcode,
+                  quantity: item.quantity,
+                  unitprice: item.unitprice
+                }}
+                onEdit={() => onEditProduct(index)}
+                onDelete={() => onRemoveProduct(index)}
+                onRestore={() => onRestoreProduct(item, index)}
+                showDeleted={showDeleted}
               />
             </div>
           </div>

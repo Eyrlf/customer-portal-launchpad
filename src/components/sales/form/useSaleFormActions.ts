@@ -34,7 +34,7 @@ export function useSaleFormActions({
   onSubmitSuccess
 }: UseSaleFormActionsProps) {
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, permissions } = useAuth();
 
   const handleSubmit = async (values: FormValues) => {
     try {
@@ -55,6 +55,17 @@ export function useSaleFormActions({
       }
       
       if (isEditing && selectedSale) {
+        // Check edit permission
+        if (!isAdmin && !permissions?.can_edit_sales) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to edit sales.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        
         // Update existing sale logic
         const { error } = await supabase
           .from('sales')
@@ -84,6 +95,17 @@ export function useSaleFormActions({
           details: JSON.stringify({...values, total_amount: totalAmount}),
         });
       } else {
+        // Check add permission
+        if (!isAdmin && !permissions?.can_add_sales) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to add sales.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        
         // Create new sale logic
         console.log("Creating new sale with values:", values);
         
@@ -150,6 +172,16 @@ export function useSaleFormActions({
   };
 
   const handleAddProduct = () => {
+    // Check permission
+    if (!isAdmin && !permissions?.can_add_salesdetails) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to add sales details.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const newItem = { prodcode: "", quantity: 1, unitprice: 0 };
     const updatedItems = [...saleItems, newItem];
     setSaleItems(updatedItems);
@@ -163,10 +195,30 @@ export function useSaleFormActions({
   };
 
   const handleEditProduct = (index: number) => {
-    // Empty implementation as we're removing sales detail actions
+    // Check permission
+    if (!isAdmin && !permissions?.can_edit_salesdetails) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit sales details.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Edit implementation would go here - currently not implemented as noted in the code
   };
 
   const handleRemoveProduct = (index: number) => {
+    // Check permission
+    if (!isAdmin && !permissions?.can_delete_salesdetails) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to delete sales details.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const updatedItems = [...saleItems];
     updatedItems.splice(index, 1);
     setSaleItems(updatedItems);
@@ -180,11 +232,33 @@ export function useSaleFormActions({
   };
   
   const handleSoftDeleteItem = async (item: SaleItem, index: number) => {
-    // Empty implementation as we're removing sales detail actions
+    // Check permission
+    if (!isAdmin && !permissions?.can_delete_salesdetails) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to delete sales details.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Implementation would go here if soft delete is implemented
+    console.log("Soft delete not implemented yet");
   };
   
   const handleRestoreItem = async (item: SaleItem, index: number) => {
-    // Empty implementation as we're removing sales detail actions
+    // Only admin can restore deleted items
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can restore deleted items.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Implementation would go here if restore is implemented
+    console.log("Restore not implemented yet");
   };
 
   const handleProductChange = (index: number, prodcode: string) => {

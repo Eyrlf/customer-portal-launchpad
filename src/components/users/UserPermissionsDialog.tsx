@@ -31,6 +31,9 @@ const formSchema = z.object({
   can_add_sales: z.boolean(),
   can_edit_sales: z.boolean(),
   can_delete_sales: z.boolean(),
+  can_add_salesdetails: z.boolean(),
+  can_edit_salesdetails: z.boolean(),
+  can_delete_salesdetails: z.boolean()
 });
 
 export function UserPermissionsDialog({
@@ -51,6 +54,9 @@ export function UserPermissionsDialog({
       can_add_sales: false,
       can_edit_sales: false,
       can_delete_sales: false,
+      can_add_salesdetails: false,
+      can_edit_salesdetails: false,
+      can_delete_salesdetails: false
     },
   });
 
@@ -87,6 +93,9 @@ export function UserPermissionsDialog({
           can_add_sales: false,
           can_edit_sales: false,
           can_delete_sales: false,
+          can_add_salesdetails: false,
+          can_edit_salesdetails: false,
+          can_delete_salesdetails: false
         });
       } else if (data) {
         // Populate existing values
@@ -97,6 +106,9 @@ export function UserPermissionsDialog({
           can_add_sales: data.can_add_sales,
           can_edit_sales: data.can_edit_sales,
           can_delete_sales: data.can_delete_sales,
+          can_add_salesdetails: data.can_add_salesdetails || false,
+          can_edit_salesdetails: data.can_edit_salesdetails || false,
+          can_delete_salesdetails: data.can_delete_salesdetails || false
         });
       }
     } catch (error) {
@@ -282,6 +294,66 @@ export function UserPermissionsDialog({
                       <FormItem className="flex items-center justify-between space-y-0 py-2">
                         <div>
                           <FormLabel>Delete Sales</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
+              {/* Sales Details Permissions Section */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="text-lg font-medium border-b pb-2">Sales Details Permissions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="can_add_salesdetails"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Add Sales Details</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="can_edit_salesdetails"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Edit Sales Details</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="can_delete_salesdetails"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Delete Sales Details</FormLabel>
                         </div>
                         <FormControl>
                           <Switch
