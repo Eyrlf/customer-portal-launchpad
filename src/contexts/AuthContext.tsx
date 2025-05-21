@@ -1,22 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { User as SupabaseUser } from "@supabase/supabase-js";
+import { UserPermission } from "@/components/sales/types";
 
 interface Profile {
   id: string;
   first_name: string | null;
   last_name: string | null;
   role: 'admin' | 'customer';
-}
-
-interface UserPermissions {
-  can_add_customers: boolean;
-  can_edit_customers: boolean;
-  can_delete_customers: boolean;
-  can_add_sales: boolean;
-  can_edit_sales: boolean;
-  can_delete_sales: boolean;
 }
 
 interface AuthUser {
@@ -27,7 +18,7 @@ interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   profile: Profile | null;
-  permissions: UserPermissions | null;
+  permissions: UserPermission | null;
   isAdmin: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -41,7 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [permissions, setPermissions] = useState<UserPermissions | null>(null);
+  const [permissions, setPermissions] = useState<UserPermission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -103,12 +94,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // If user is admin, set all permissions to true
       if (data.role === 'admin') {
         setPermissions({
+          id: "",
+          user_id: userId,
           can_add_customers: true,
           can_edit_customers: true,
           can_delete_customers: true,
           can_add_sales: true,
           can_edit_sales: true,
           can_delete_sales: true,
+          created_at: "",
+          updated_at: ""
         });
       } else {
         // Otherwise fetch permissions from user_permissions table
@@ -122,35 +117,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   async function fetchUserPermissions(userId: string) {
     try {
       const { data, error } = await supabase
-        .from('user_permissions')
-        .select('*')
-        .eq('user_id', userId)
+        .from("user_permissions")
+        .select("*")
+        .eq("user_id", userId)
         .single();
       
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 means no rows returned
-        console.error('Error fetching user permissions:', error);
-      }
-      
-      if (data) {
-        setPermissions({
-          can_add_customers: data.can_add_customers,
-          can_edit_customers: data.can_edit_customers,
-          can_delete_customers: data.can_delete_customers,
-          can_add_sales: data.can_add_sales,
-          can_edit_sales: data.can_edit_sales,
-          can_delete_sales: data.can_delete_sales,
-        });
-      } else {
+      if (error) {
+        if (error.code !== "PGRST116") {
+          // PGRST116 means no rows returned
+          console.error('Error fetching user permissions:', error);
+        }
         // Default to no permissions if none are set
         setPermissions({
+          id: "",
+          user_id: userId,
           can_add_customers: false,
           can_edit_customers: false,
           can_delete_customers: false,
           can_add_sales: false,
           can_edit_sales: false,
           can_delete_sales: false,
+          created_at: "",
+          updated_at: ""
         });
+        return;
+      }
+      
+      if (data) {
+        setPermissions(data as UserPermission);
       }
     } catch (error) {
       console.error('Error fetching user permissions:', error);

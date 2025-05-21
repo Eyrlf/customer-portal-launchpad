@@ -374,6 +374,45 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          can_add_customers: boolean
+          can_add_sales: boolean
+          can_delete_customers: boolean
+          can_delete_sales: boolean
+          can_edit_customers: boolean
+          can_edit_sales: boolean
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_add_customers?: boolean
+          can_add_sales?: boolean
+          can_delete_customers?: boolean
+          can_delete_sales?: boolean
+          can_edit_customers?: boolean
+          can_edit_sales?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_add_customers?: boolean
+          can_add_sales?: boolean
+          can_delete_customers?: boolean
+          can_delete_sales?: boolean
+          can_edit_customers?: boolean
+          can_edit_sales?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

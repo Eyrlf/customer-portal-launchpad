@@ -14,7 +14,7 @@ import { Plus, Edit, Trash, MoreVertical, RefreshCcw, Eye } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
-import { SalesRecord } from "./types";
+import { SalesRecord, UserPermission } from "./types";
 import { formatDate, formatModifierInfo } from "./utils/formatters";
 import { useSalesData } from "./hooks/useSalesData";
 import { StatusBadge } from "./StatusBadge";
@@ -22,22 +22,12 @@ import { SaleForm } from "./SaleForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
-interface UserPermissions {
-  can_add_sales: boolean;
-  can_edit_sales: boolean;
-  can_delete_sales: boolean;
-}
-
 export function SalesTable() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [selectedSale, setSelectedSale] = useState<SalesRecord | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [userPermissions, setUserPermissions] = useState<UserPermissions>({
-    can_add_sales: false,
-    can_edit_sales: false,
-    can_delete_sales: false,
-  });
+  const [userPermissions, setUserPermissions] = useState<UserPermission | null>(null);
   const { isAdmin, user } = useAuth();
   const { toast } = useToast();
   
@@ -58,9 +48,16 @@ export function SalesTable() {
     } else if (isAdmin) {
       // Admins have all permissions
       setUserPermissions({
+        id: "",
+        user_id: user?.id || "",
+        can_add_customers: true,
+        can_edit_customers: true,
+        can_delete_customers: true,
         can_add_sales: true,
         can_edit_sales: true,
         can_delete_sales: true,
+        created_at: "",
+        updated_at: ""
       });
     }
   }, [isAdmin, user]);
@@ -70,29 +67,34 @@ export function SalesTable() {
     
     try {
       const { data, error } = await supabase
-        .from('user_permissions')
-        .select('can_add_sales, can_edit_sales, can_delete_sales')
-        .eq('user_id', user.id)
+        .from("user_permissions")
+        .select("*")
+        .eq("user_id", user.id)
         .single();
       
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user permissions:', error);
+      if (error) {
+        if (error.code !== "PGRST116") {
+          // PGRST116 means no rows returned
+          console.error('Error fetching user permissions:', error);
+        }
+        // Default to no permissions if none are set
+        setUserPermissions({
+          id: "",
+          user_id: user.id,
+          can_add_sales: false,
+          can_edit_sales: false,
+          can_delete_sales: false,
+          can_add_customers: false,
+          can_edit_customers: false,
+          can_delete_customers: false,
+          created_at: "",
+          updated_at: ""
+        });
         return;
       }
       
       if (data) {
-        setUserPermissions({
-          can_add_sales: data.can_add_sales,
-          can_edit_sales: data.can_edit_sales,
-          can_delete_sales: data.can_delete_sales,
-        });
-      } else {
-        // Default to no permissions if none are set
-        setUserPermissions({
-          can_add_sales: false,
-          can_edit_sales: false,
-          can_delete_sales: false,
-        });
+        setUserPermissions(data as UserPermission);
       }
     } catch (error) {
       console.error('Error in fetchUserPermissions:', error);
@@ -100,7 +102,7 @@ export function SalesTable() {
   };
 
   const handleEdit = (sale: SalesRecord) => {
-    if (!userPermissions.can_edit_sales && !isAdmin) {
+    if (!userPermissions?.can_edit_sales && !isAdmin) {
       toast({
         title: "Permission Denied",
         description: "You don't have permission to edit sales.",
@@ -115,7 +117,7 @@ export function SalesTable() {
   };
 
   const handleDelete = (sale: SalesRecord) => {
-    if (!userPermissions.can_delete_sales && !isAdmin) {
+    if (!userPermissions?.can_delete_sales && !isAdmin) {
       toast({
         title: "Permission Denied",
         description: "You don't have permission to delete sales.",
@@ -145,6 +147,10 @@ export function SalesTable() {
     fetchSales();
   };
 
+  const canAddSale = isAdmin || (userPermissions?.can_add_sales || false);
+  const canEditSale = isAdmin || (userPermissions?.can_edit_sales || false);
+  const canDeleteSale = isAdmin || (userPermissions?.can_delete_sales || false);
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-6">
@@ -158,7 +164,7 @@ export function SalesTable() {
               {showDeleted ? "Hide Deleted" : "Show Deleted"}
             </Button>
           )}
-          {(userPermissions.can_add_sales || isAdmin) && (
+          {canAddSale && (
             <Button
               onClick={() => {
                 setIsEditing(false);

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -25,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { UserPermission } from "../sales/types";
 
 interface Customer {
   custno: string;
@@ -32,12 +32,6 @@ interface Customer {
   address: string | null;
   payterm: string | null;
   deleted_at: string | null;
-}
-
-interface UserPermissions {
-  can_add_customers: boolean;
-  can_edit_customers: boolean;
-  can_delete_customers: boolean;
 }
 
 export function CustomersTable() {
@@ -48,11 +42,7 @@ export function CustomersTable() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [userPermissions, setUserPermissions] = useState<UserPermissions>({
-    can_add_customers: false,
-    can_edit_customers: false,
-    can_delete_customers: false,
-  });
+  const [userPermissions, setUserPermissions] = useState<UserPermission | null>(null);
   const { toast } = useToast();
   const { isAdmin, user } = useAuth();
 
@@ -80,9 +70,16 @@ export function CustomersTable() {
     } else if (isAdmin) {
       // Admins have all permissions
       setUserPermissions({
+        id: "",
+        user_id: user?.id || "",
         can_add_customers: true,
         can_edit_customers: true,
         can_delete_customers: true,
+        can_add_sales: true,
+        can_edit_sales: true,
+        can_delete_sales: true,
+        created_at: "",
+        updated_at: ""
       });
     }
   }, [showDeleted, isAdmin, user]);
@@ -110,29 +107,34 @@ export function CustomersTable() {
     
     try {
       const { data, error } = await supabase
-        .from('user_permissions')
-        .select('can_add_customers, can_edit_customers, can_delete_customers')
-        .eq('user_id', user.id)
+        .from("user_permissions")
+        .select("*")
+        .eq("user_id", user.id)
         .single();
       
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user permissions:', error);
+      if (error) {
+        if (error.code !== "PGRST116") {
+          // PGRST116 means no rows returned
+          console.error('Error fetching user permissions:', error);
+        }
+        // Default to no permissions if none are set
+        setUserPermissions({
+          id: "",
+          user_id: user.id,
+          can_add_customers: false,
+          can_edit_customers: false,
+          can_delete_customers: false,
+          can_add_sales: false,
+          can_edit_sales: false,
+          can_delete_sales: false,
+          created_at: "",
+          updated_at: ""
+        });
         return;
       }
       
       if (data) {
-        setUserPermissions({
-          can_add_customers: data.can_add_customers,
-          can_edit_customers: data.can_edit_customers,
-          can_delete_customers: data.can_delete_customers,
-        });
-      } else {
-        // Default to no permissions if none are set
-        setUserPermissions({
-          can_add_customers: false,
-          can_edit_customers: false,
-          can_delete_customers: false,
-        });
+        setUserPermissions(data as UserPermission);
       }
     } catch (error) {
       console.error('Error in fetchUserPermissions:', error);
@@ -176,7 +178,7 @@ export function CustomersTable() {
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       if (isEditing && selectedCustomer) {
-        if (!userPermissions.can_edit_customers && !isAdmin) {
+        if (!userPermissions?.can_edit_customers && !isAdmin) {
           toast({
             title: "Permission Denied",
             description: "You don't have permission to edit customers.",
@@ -210,7 +212,7 @@ export function CustomersTable() {
           details: JSON.stringify(values),
         });
       } else {
-        if (!userPermissions.can_add_customers && !isAdmin) {
+        if (!userPermissions?.can_add_customers && !isAdmin) {
           toast({
             title: "Permission Denied",
             description: "You don't have permission to add customers.",
@@ -268,7 +270,7 @@ export function CustomersTable() {
   };
 
   const handleEdit = (customer: Customer) => {
-    if (!userPermissions.can_edit_customers && !isAdmin) {
+    if (!userPermissions?.can_edit_customers && !isAdmin) {
       toast({
         title: "Permission Denied",
         description: "You don't have permission to edit customers.",
@@ -283,7 +285,7 @@ export function CustomersTable() {
   };
 
   const handleDelete = async (customer: Customer) => {
-    if (!userPermissions.can_delete_customers && !isAdmin) {
+    if (!userPermissions?.can_delete_customers && !isAdmin) {
       toast({
         title: "Permission Denied",
         description: "You don't have permission to delete customers.",
@@ -366,6 +368,10 @@ export function CustomersTable() {
     }
   };
 
+  const canAddCustomer = isAdmin || (userPermissions?.can_add_customers || false);
+  const canEditCustomer = isAdmin || (userPermissions?.can_edit_customers || false);
+  const canDeleteCustomer = isAdmin || (userPermissions?.can_delete_customers || false);
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-6">
@@ -379,7 +385,7 @@ export function CustomersTable() {
               {showDeleted ? "Hide Deleted" : "Show Deleted"}
             </Button>
           )}
-          {(userPermissions.can_add_customers || isAdmin) && (
+          {canAddCustomer && (
             <Button
               onClick={() => {
                 setIsEditing(false);
@@ -439,13 +445,13 @@ export function CustomersTable() {
                         </>
                       ) : (
                         <>
-                          {(userPermissions.can_edit_customers || isAdmin) && (
+                          {(userPermissions?.can_edit_customers || isAdmin) && (
                             <DropdownMenuItem onClick={() => handleEdit(customer)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
                           )}
-                          {(userPermissions.can_delete_customers || isAdmin) && (
+                          {(userPermissions?.can_delete_customers || isAdmin) && (
                             <DropdownMenuItem onClick={() => handleDelete(customer)}>
                               <Trash className="mr-2 h-4 w-4" />
                               Delete

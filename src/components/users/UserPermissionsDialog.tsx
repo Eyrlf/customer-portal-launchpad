@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -65,31 +64,21 @@ export function UserPermissionsDialog({
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('user_permissions')
-        .select('*')
-        .eq('user_id', userId)
+        .from("user_permissions")
+        .select("*")
+        .eq("user_id", userId)
         .single();
       
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 means no rows returned
-        console.error('Error fetching permissions:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch user permissions.",
-          variant: "destructive",
-        });
-      }
-      
-      if (data) {
-        form.reset({
-          can_add_customers: data.can_add_customers,
-          can_edit_customers: data.can_edit_customers,
-          can_delete_customers: data.can_delete_customers,
-          can_add_sales: data.can_add_sales,
-          can_edit_sales: data.can_edit_sales,
-          can_delete_sales: data.can_delete_sales,
-        });
-      } else {
+      if (error) {
+        if (error.code !== "PGRST116") {
+          // PGRST116 means no rows returned
+          console.error('Error fetching permissions:', error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch user permissions.",
+            variant: "destructive",
+          });
+        }
         // Reset to default values if no permissions found
         form.reset({
           can_add_customers: false,
@@ -98,6 +87,15 @@ export function UserPermissionsDialog({
           can_add_sales: false,
           can_edit_sales: false,
           can_delete_sales: false,
+        });
+      } else if (data) {
+        form.reset({
+          can_add_customers: data.can_add_customers,
+          can_edit_customers: data.can_edit_customers,
+          can_delete_customers: data.can_delete_customers,
+          can_add_sales: data.can_add_sales,
+          can_edit_sales: data.can_edit_sales,
+          can_delete_sales: data.can_delete_sales,
         });
       }
     } catch (error) {
@@ -110,9 +108,9 @@ export function UserPermissionsDialog({
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const { data: existingPermission, error: checkError } = await supabase
-        .from('user_permissions')
-        .select('id')
-        .eq('user_id', userId)
+        .from("user_permissions")
+        .select("id")
+        .eq("user_id", userId)
         .single();
       
       let result;
@@ -120,16 +118,16 @@ export function UserPermissionsDialog({
       if (existingPermission) {
         // Update existing permissions
         result = await supabase
-          .from('user_permissions')
+          .from("user_permissions")
           .update({
             ...values,
             updated_at: new Date().toISOString()
           })
-          .eq('user_id', userId);
+          .eq("user_id", userId);
       } else {
         // Create new permissions
         result = await supabase
-          .from('user_permissions')
+          .from("user_permissions")
           .insert({
             user_id: userId,
             ...values,
