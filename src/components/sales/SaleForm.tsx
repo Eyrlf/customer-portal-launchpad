@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Form,
   FormControl,
@@ -19,11 +20,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Plus, Trash } from "lucide-react";
+import { CalendarIcon, Plus, Trash, RefreshCcw } from "lucide-react";
 import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SalesDetailActions } from "./SalesDetailActions";
 
 interface Product {
   prodcode: string;
@@ -41,9 +43,11 @@ interface SaleFormProps {
 }
 
 interface SaleItem {
+  id?: string;
   prodcode: string;
   quantity: number;
   unitprice: number;
+  deleted_at?: string | null;
 }
 
 const formSchema = z.object({
@@ -66,10 +70,14 @@ export function SaleForm({
   onCancel 
 }: SaleFormProps) {
   const { toast } = useToast();
+  const { isAdmin, permissions } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+  const [deletedItems, setDeletedItems] = useState<SaleItem[]>([]);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -100,6 +108,7 @@ export function SaleForm({
         items: [{ prodcode: "", quantity: 1 }],
       });
       setSaleItems([{ prodcode: "", quantity: 1, unitprice: 0 }]);
+      setDeletedItems([]);
     }
   }, [selectedSale, isEditing, form]);
 
@@ -185,17 +194,28 @@ export function SaleForm({
 
   const fetchSaleDetails = async (transno: string) => {
     try {
-      const { data: detailsData, error: detailsError } = await supabase
+      // First get active items
+      const { data: activeDetails, error: activeError } = await supabase
         .from('salesdetail')
         .select('*')
-        .eq('transno', transno);
+        .eq('transno', transno)
+        .is('deleted_at', null);
       
-      if (detailsError) throw detailsError;
+      if (activeError) throw activeError;
       
-      if (detailsData && detailsData.length > 0) {
+      // Then get deleted items
+      const { data: deletedDetails, error: deletedError } = await supabase
+        .from('salesdetail')
+        .select('*')
+        .eq('transno', transno)
+        .not('deleted_at', 'is', null);
+        
+      if (deletedError) throw deletedError;
+      
+      if (activeDetails && activeDetails.length > 0) {
         const items = await Promise.all(
-          detailsData.map(async (detail) => {
-            const { data: priceData, error: priceError } = await supabase
+          activeDetails.map(async (detail) => {
+            const { data: priceData } = await supabase
               .from('pricehist')
               .select('unitprice')
               .eq('prodcode', detail.prodcode)
@@ -205,6 +225,7 @@ export function SaleForm({
             const unitprice = priceData && priceData.length > 0 ? priceData[0].unitprice : 0;
             
             return {
+              id: detail.id,
               prodcode: detail.prodcode,
               quantity: Number(detail.quantity),
               unitprice,
@@ -219,6 +240,31 @@ export function SaleForm({
         })));
         
         calculateTotal(items);
+      }
+      
+      if (deletedDetails && deletedDetails.length > 0) {
+        const items = await Promise.all(
+          deletedDetails.map(async (detail) => {
+            const { data: priceData } = await supabase
+              .from('pricehist')
+              .select('unitprice')
+              .eq('prodcode', detail.prodcode)
+              .order('effdate', { ascending: false })
+              .limit(1);
+            
+            const unitprice = priceData && priceData.length > 0 ? priceData[0].unitprice : 0;
+            
+            return {
+              id: detail.id,
+              prodcode: detail.prodcode,
+              quantity: Number(detail.quantity),
+              unitprice,
+              deleted_at: detail.deleted_at
+            };
+          })
+        );
+        
+        setDeletedItems(items);
       }
     } catch (error) {
       console.error('Error fetching sale details:', error);
@@ -266,35 +312,42 @@ export function SaleForm({
           throw error;
         }
         
-        // Delete existing sale details
-        const { error: deleteError } = await supabase
-          .from('salesdetail')
-          .delete()
-          .eq('transno', selectedSale.transno);
-        
-        if (deleteError) {
-          console.error("Error deleting sale details:", deleteError);
-          throw deleteError;
-        }
-        
-        // Insert new sale details
-        if (saleItems.length > 0) {
-          const detailsToInsert = saleItems
-            .filter(item => item.prodcode) // Only include items with a product code
-            .map(item => ({
-              transno: selectedSale.transno,
-              prodcode: item.prodcode,
-              quantity: item.quantity,
-            }));
+        // Only update sales details if we have permission
+        if (permissions?.can_edit_salesdetails || isAdmin) {
+          // Process item updates
+          for (let i = 0; i < saleItems.length; i++) {
+            const item = saleItems[i];
             
-          if (detailsToInsert.length > 0) {
-            const { error: insertError } = await supabase
-              .from('salesdetail')
-              .insert(detailsToInsert);
-            
-            if (insertError) {
-              console.error("Error inserting sale details:", insertError);
-              throw insertError;
+            // If item has an ID, it's an existing item - update it
+            if (item.id) {
+              const { error: updateError } = await supabase
+                .from('salesdetail')
+                .update({
+                  prodcode: item.prodcode,
+                  quantity: item.quantity
+                })
+                .eq('id', item.id);
+                
+              if (updateError) {
+                console.error("Error updating sales detail:", updateError);
+                throw updateError;
+              }
+            } else {
+              // Insert new item if we have add permission
+              if (permissions?.can_add_salesdetails || isAdmin) {
+                const { error: insertError } = await supabase
+                  .from('salesdetail')
+                  .insert({
+                    transno: selectedSale.transno,
+                    prodcode: item.prodcode,
+                    quantity: item.quantity,
+                  });
+                  
+                if (insertError) {
+                  console.error("Error inserting sales detail:", insertError);
+                  throw insertError;
+                }
+              }
             }
           }
         }
@@ -350,24 +403,27 @@ export function SaleForm({
         
         console.log("Sale created successfully, inserting details for:", saleItems.length, "items");
         
-        // Insert sale details
-        if (saleItems.length > 0) {
-          const detailsToInsert = saleItems
-            .filter(item => item.prodcode) // Only include items with a product code
-            .map(item => ({
-              transno: values.transno,
-              prodcode: item.prodcode,
-              quantity: item.quantity,
-            }));
-            
-          if (detailsToInsert.length > 0) {
-            const { error: insertError } = await supabase
-              .from('salesdetail')
-              .insert(detailsToInsert);
-            
-            if (insertError) {
-              console.error("Error inserting sale details:", insertError);
-              throw insertError;
+        // Insert sale details if we have permission
+        if (permissions?.can_add_salesdetails || isAdmin) {
+          // Insert sale details
+          if (saleItems.length > 0) {
+            const detailsToInsert = saleItems
+              .filter(item => item.prodcode) // Only include items with a product code
+              .map(item => ({
+                transno: values.transno,
+                prodcode: item.prodcode,
+                quantity: item.quantity,
+              }));
+              
+            if (detailsToInsert.length > 0) {
+              const { error: insertError } = await supabase
+                .from('salesdetail')
+                .insert(detailsToInsert);
+              
+              if (insertError) {
+                console.error("Error inserting sale details:", insertError);
+                throw insertError;
+              }
             }
           }
         }
@@ -400,6 +456,16 @@ export function SaleForm({
   };
 
   const handleAddProduct = () => {
+    // Check permission
+    if (!permissions?.can_add_salesdetails && !isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to add items.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const newItem = { prodcode: "", quantity: 1, unitprice: 0 };
     setSaleItems([...saleItems, newItem]);
     
@@ -408,6 +474,25 @@ export function SaleForm({
   };
 
   const handleRemoveProduct = (index: number) => {
+    // Check permission
+    if (!permissions?.can_delete_salesdetails && !isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to delete items.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const itemToRemove = saleItems[index];
+    
+    // If the item has an ID, soft delete it
+    if (itemToRemove.id && isEditing && selectedSale) {
+      handleSoftDeleteItem(itemToRemove, index);
+      return;
+    }
+    
+    // Otherwise just remove it from the array (for new items)
     const updatedItems = [...saleItems];
     updatedItems.splice(index, 1);
     setSaleItems(updatedItems);
@@ -419,8 +504,113 @@ export function SaleForm({
     
     calculateTotal(updatedItems);
   };
+  
+  const handleSoftDeleteItem = async (item: SaleItem, index: number) => {
+    if (!item.id) return;
+    
+    try {
+      // Update the salesdetail record with deleted_at timestamp
+      const { error } = await supabase
+        .from('salesdetail')
+        .update({
+          deleted_at: new Date().toISOString()
+        })
+        .eq('id', item.id);
+        
+      if (error) throw error;
+      
+      // Remove from active items
+      const updatedItems = [...saleItems];
+      const removedItem = updatedItems.splice(index, 1)[0];
+      if (removedItem) {
+        removedItem.deleted_at = new Date().toISOString();
+        setDeletedItems([...deletedItems, removedItem]);
+      }
+      
+      setSaleItems(updatedItems);
+      
+      // Update form values
+      const currentItems = form.getValues('items');
+      const updatedFormItems = [...currentItems];
+      updatedFormItems.splice(index, 1);
+      form.setValue('items', updatedFormItems);
+      
+      calculateTotal(updatedItems);
+      
+      toast({
+        title: "Item Removed",
+        description: "The item has been removed from the sale.",
+      });
+      
+    } catch (error) {
+      console.error('Error soft deleting sales detail:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove item.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleRestoreItem = async (item: SaleItem, index: number) => {
+    if (!item.id) return;
+    
+    try {
+      // Update the salesdetail record, setting deleted_at to null
+      const { error } = await supabase
+        .from('salesdetail')
+        .update({
+          deleted_at: null
+        })
+        .eq('id', item.id);
+        
+      if (error) throw error;
+      
+      // Remove from deleted items
+      const updatedDeletedItems = [...deletedItems];
+      const restoredItem = updatedDeletedItems.splice(index, 1)[0];
+      if (restoredItem) {
+        delete restoredItem.deleted_at;
+        setSaleItems([...saleItems, restoredItem]);
+      }
+      
+      setDeletedItems(updatedDeletedItems);
+      
+      // Update form values
+      const currentItems = form.getValues('items');
+      form.setValue('items', [...currentItems, { 
+        prodcode: restoredItem.prodcode, 
+        quantity: restoredItem.quantity 
+      }]);
+      
+      calculateTotal([...saleItems, restoredItem]);
+      
+      toast({
+        title: "Item Restored",
+        description: "The item has been restored to the sale.",
+      });
+      
+    } catch (error) {
+      console.error('Error restoring sales detail:', error);
+      toast({
+        title: "Error",
+        description: "Failed to restore item.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleProductChange = (index: number, prodcode: string) => {
+    // Check edit permission
+    if (!permissions?.can_edit_salesdetails && !isAdmin && isEditing) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit items.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const selectedProduct = products.find(p => p.prodcode === prodcode);
     const unitprice = selectedProduct?.unitprice || 0;
     
@@ -431,7 +621,7 @@ export function SaleForm({
     if (index >= updatedItems.length) {
       updatedItems.push({ prodcode, quantity, unitprice });
     } else {
-      updatedItems[index] = { prodcode, quantity, unitprice };
+      updatedItems[index] = { ...updatedItems[index], prodcode, unitprice };
     }
     
     setSaleItems(updatedItems);
@@ -446,9 +636,19 @@ export function SaleForm({
   };
 
   const handleQuantityChange = (index: number, quantity: number) => {
+    // Check edit permission
+    if (!permissions?.can_edit_salesdetails && !isAdmin && isEditing) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit items.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const updatedItems = [...saleItems];
     if (index < updatedItems.length) {
-      updatedItems[index].quantity = quantity;
+      updatedItems[index] = { ...updatedItems[index], quantity };
       setSaleItems(updatedItems);
       calculateTotal(updatedItems);
       
@@ -477,6 +677,10 @@ export function SaleForm({
     const product = products.find(p => p.prodcode === prodcode);
     return product?.description || prodcode;
   };
+
+  // Only show active items by default, toggle for deleted items
+  const displayedItems = showDeleted ? deletedItems : saleItems;
+  const canAddItems = isAdmin || permissions?.can_add_salesdetails;
 
   return (
     <ScrollArea className="max-h-[70vh] pr-4">
@@ -563,67 +767,105 @@ export function SaleForm({
           <div>
             <div className="flex justify-between items-center mb-2">
               <FormLabel>Products</FormLabel>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                onClick={handleAddProduct}
-              >
-                <Plus size={16} className="mr-2" /> Add Product
-              </Button>
+              <div className="flex gap-2">
+                {isEditing && (
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDeleted(!showDeleted)}
+                  >
+                    {showDeleted ? "Show Active Items" : "Show Deleted Items"}
+                  </Button>
+                )}
+                {canAddItems && !showDeleted && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleAddProduct}
+                  >
+                    <Plus size={16} className="mr-2" /> Add Product
+                  </Button>
+                )}
+              </div>
             </div>
             
-            {saleItems.map((item, index) => (
-              <div key={index} className="flex gap-2 mb-3 items-end">
-                <div className="flex-grow space-y-2">
-                  <FormLabel className="text-xs">Product</FormLabel>
-                  <Select
-                    value={item.prodcode}
-                    onValueChange={(value) => handleProductChange(index, value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.prodcode} value={product.prodcode}>
-                          {product.description} ({product.prodcode}) - ${product.unitprice?.toFixed(2)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="w-20 space-y-2">
-                  <FormLabel className="text-xs">Qty</FormLabel>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 1)}
-                  />
-                </div>
-                
-                <div className="w-20 space-y-2">
-                  <FormLabel className="text-xs">Price</FormLabel>
-                  <Input
-                    type="text"
-                    value={`$${getProductPrice(item.prodcode).toFixed(2)}`}
-                    disabled
-                  />
-                </div>
-                
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveProduct(index)}
-                  className="mb-1"
-                >
-                  <Trash size={16} />
-                </Button>
+            {displayedItems.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                {showDeleted ? "No deleted items found." : "No items added yet."}
               </div>
-            ))}
+            ) : (
+              displayedItems.map((item, index) => (
+                <div key={index} className="flex gap-2 mb-3 items-end">
+                  <div className="flex-grow space-y-2">
+                    <FormLabel className="text-xs">Product</FormLabel>
+                    <Select
+                      value={item.prodcode}
+                      onValueChange={(value) => handleProductChange(index, value)}
+                      disabled={showDeleted || (!isAdmin && !permissions?.can_edit_salesdetails && isEditing)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem key={product.prodcode} value={product.prodcode}>
+                            {product.description} ({product.prodcode}) - ${product.unitprice?.toFixed(2)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="w-20 space-y-2">
+                    <FormLabel className="text-xs">Qty</FormLabel>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 1)}
+                      disabled={showDeleted || (!isAdmin && !permissions?.can_edit_salesdetails && isEditing)}
+                    />
+                  </div>
+                  
+                  <div className="w-20 space-y-2">
+                    <FormLabel className="text-xs">Price</FormLabel>
+                    <Input
+                      type="text"
+                      value={`$${item.unitprice.toFixed(2)}`}
+                      disabled
+                    />
+                  </div>
+                  
+                  <div className="mb-1">
+                    {showDeleted ? (
+                      isAdmin && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleRestoreItem(item, index)}
+                        >
+                          <RefreshCcw size={16} />
+                        </Button>
+                      )
+                    ) : (
+                      (isAdmin || permissions?.can_delete_salesdetails) && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveProduct(index)}
+                        >
+                          <Trash size={16} />
+                        </Button>
+                      )
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
             
             <div className="mt-4 p-3 bg-gray-50 rounded-md">
               <div className="flex justify-between items-center font-medium">

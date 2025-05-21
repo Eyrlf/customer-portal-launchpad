@@ -178,7 +178,7 @@ export function UserPermissionsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-auto">
+      <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>Manage Permissions for {userName}</DialogTitle>
         </DialogHeader>
@@ -190,212 +190,179 @@ export function UserPermissionsDialog({
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Customer Permissions Column */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Customer Permissions</h3>
-                  <div className="space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="can_add_customers"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Add Customers</FormLabel>
-                            <FormDescription className="text-xs">
-                              Create new customers
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="can_edit_customers"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Edit Customers</FormLabel>
-                            <FormDescription className="text-xs">
-                              Modify customer details
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="can_delete_customers"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Delete Customers</FormLabel>
-                            <FormDescription className="text-xs">
-                              Remove customers
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                <div className="border rounded-lg p-4 space-y-3">
+                  <h3 className="text-lg font-medium border-b pb-2">Customer Permissions</h3>
+                  <FormField
+                    control={form.control}
+                    name="can_add_customers"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Add Customers</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="can_edit_customers"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Edit Customers</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="can_delete_customers"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Delete Customers</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 
                 {/* Sales Permissions Column */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Sales Permissions</h3>
-                  <div className="space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="can_add_sales"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Add Sales</FormLabel>
-                            <FormDescription className="text-xs">
-                              Create new sales
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="can_edit_sales"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Edit Sales</FormLabel>
-                            <FormDescription className="text-xs">
-                              Modify sales details
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="can_delete_sales"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Delete Sales</FormLabel>
-                            <FormDescription className="text-xs">
-                              Remove sales
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                <div className="border rounded-lg p-4 space-y-3">
+                  <h3 className="text-lg font-medium border-b pb-2">Sales Permissions</h3>
+                  <FormField
+                    control={form.control}
+                    name="can_add_sales"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Add Sales</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="can_edit_sales"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Edit Sales</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="can_delete_sales"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Delete Sales</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 {/* Sales Details Permissions Column */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Sales Details</h3>
-                  <div className="space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="can_add_salesdetails"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Add Items</FormLabel>
-                            <FormDescription className="text-xs">
-                              Add items to sales
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="can_edit_salesdetails"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Edit Items</FormLabel>
-                            <FormDescription className="text-xs">
-                              Modify sales items
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="can_delete_salesdetails"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Delete Items</FormLabel>
-                            <FormDescription className="text-xs">
-                              Remove items from sales
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                <div className="border rounded-lg p-4 space-y-3">
+                  <h3 className="text-lg font-medium border-b pb-2">Sales Details</h3>
+                  <FormField
+                    control={form.control}
+                    name="can_add_salesdetails"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Add Items</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="can_edit_salesdetails"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Edit Items</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="can_delete_salesdetails"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 py-2">
+                        <div>
+                          <FormLabel>Delete Items</FormLabel>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </div>
               
