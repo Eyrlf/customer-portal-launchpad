@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { SalesRecord } from "../types";
-import { FormValues, formSchema, Product, SaleItem, SalesDetailFromDB } from "./types";
+import { SalesRecord, Product, SaleItem, SalesDetailFromDB } from "../types";
+import { FormValues, formSchema } from "./types";
 
 export function useSaleFormState(
   selectedSale: SalesRecord | null,
@@ -257,6 +256,6 @@ export function useSaleFormState(
     calculateTotal,
     getProductPrice,
     getProductName,
-    fetchSaleDetails
+    fetchSaleDetails: (transno: string) => fetchSaleDetails(transno)
   };
 }

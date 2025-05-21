@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CustomerFormValues } from "./CustomerForm";
 
@@ -110,6 +111,8 @@ export async function updateCustomer(custno: string, values: Omit<CustomerFormVa
         custname: values.custname,
         address: values.address,
         payterm: values.payterm || 'COD',
+        modified_at: new Date().toISOString(),
+        modified_by: (await supabase.auth.getUser()).data.user?.id
       })
       .eq('custno', custno);
     
@@ -171,7 +174,10 @@ export async function restoreCustomer(customer: Customer) {
     // Restore the customer by setting deleted_at to null
     const { data, error } = await supabase
       .from('customer')
-      .update({ deleted_at: null })
+      .update({ 
+        deleted_at: null,
+        // Don't set modified_at or modified_by so it appears as new/restored
+      })
       .eq('custno', customer.custno);
     
     if (error) {
@@ -191,7 +197,8 @@ export async function restoreCustomer(customer: Customer) {
       success: true,
       customer: {
         ...customer,
-        deleted_at: null
+        deleted_at: null,
+        action: 'restore' // Add an action flag for status detection
       }
     };
   } catch (error) {
@@ -203,14 +210,14 @@ export async function restoreCustomer(customer: Customer) {
 export function getCustomerStatus(customer: Customer) {
   if (customer.deleted_at) return 'Deleted';
   
+  // Check for the action property if available (used when restored)
+  const customerAny = customer as any;
+  if (customerAny.action === 'restore') {
+    return 'Restored';
+  }
+  
+  // Check if the customer has been modified after creation
   if (customer.modified_at !== null && customer.modified_by !== null) {
-    // Check for the action property if available (used when restored)
-    const customerAny = customer as any;
-    if (customerAny.action === 'restore') {
-      return 'Restored';
-    }
-    
-    // Only return Edited if the customer has been modified
     return 'Edited';
   }
   

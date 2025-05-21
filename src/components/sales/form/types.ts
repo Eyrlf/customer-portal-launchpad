@@ -1,6 +1,6 @@
 
 import { z } from "zod";
-import { SalesRecord, Customer, SaleItem } from "../types";
+import { SalesRecord, Customer, SaleItem, Product, SalesDetailFromDB } from "../types";
 
 // Form schema with updated items to include id and deleted_at
 export const formSchema = z.object({

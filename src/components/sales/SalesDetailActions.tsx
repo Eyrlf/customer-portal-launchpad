@@ -28,7 +28,7 @@ export function SalesDetailActions({
   const { isAdmin, permissions } = useAuth();
   const { toast } = useToast();
 
-  // Don't even render the component if user doesn't have permissions
+  // Don't render the component if user doesn't have permissions
   if (showDeleted && !isAdmin) return null;
   
   if (!showDeleted && !isAdmin && 

@@ -391,7 +391,8 @@ export function useSaleFormActions({
       form.setValue('items', [...currentItems, { 
         id: restoredItem.id,
         prodcode: restoredItem.prodcode, 
-        quantity: restoredItem.quantity
+        quantity: restoredItem.quantity,
+        deleted_at: null
       }]);
       
       calculateTotal([...saleItems, restoredItem]);
