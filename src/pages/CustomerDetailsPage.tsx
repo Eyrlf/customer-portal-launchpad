@@ -51,7 +51,18 @@ const CustomerDetailsPage = () => {
           .single();
         
         if (customerError) throw customerError;
-        setCustomer(customerData);
+        
+        // Convert customerData to match Customer interface
+        const formattedCustomer: Customer = {
+          custno: customerData.custno,
+          custname: customerData.custname,
+          address: customerData.address,
+          city: customerData.city || null, // Provide default values for optional fields
+          phone: customerData.phone || null,
+          payterm: customerData.payterm
+        };
+        
+        setCustomer(formattedCustomer);
         
         // Fetch sales for this customer
         const { data: salesData, error: salesError } = await supabase
@@ -65,7 +76,7 @@ const CustomerDetailsPage = () => {
         
         if (salesError) throw salesError;
 
-        // For each sale, fetch the total amount from payments and determine payment status
+        // For each sale, fetch the modifier (user) data and payments separately
         const salesWithTotals = await Promise.all((salesData || []).map(async (sale) => {
           // For each sale, fetch the modifier (user) data separately
           let modifierData = null;
@@ -100,8 +111,11 @@ const CustomerDetailsPage = () => {
             return {
               ...sale,
               modifier: modifierData,
-              total_amount: 0
-            };
+              total_amount: 0,
+              created_at: sale.created_at || "",
+              created_by: sale.created_by || null,
+              deleted_by: sale.deleted_by || null
+            } as SalesRecord;
           }
 
           // Calculate total amount from payments
@@ -110,11 +124,14 @@ const CustomerDetailsPage = () => {
           return {
             ...sale,
             modifier: modifierData,
-            total_amount: totalAmount
-          };
+            total_amount: totalAmount,
+            created_at: sale.created_at || "",
+            created_by: sale.created_by || null,
+            deleted_by: sale.deleted_by || null
+          } as SalesRecord;
         }));
 
-        setSales(salesWithTotals as SalesRecord[]);
+        setSales(salesWithTotals);
         
         // Fetch all payments for this customer's sales
         if (salesData && salesData.length > 0) {

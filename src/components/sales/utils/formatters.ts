@@ -20,7 +20,7 @@ export const formatModifierInfo = (sale: SalesRecord) => {
     if (sale.modifier.user_metadata?.first_name || sale.modifier.user_metadata?.last_name) {
       name = `${sale.modifier.user_metadata.first_name || ''} ${sale.modifier.user_metadata.last_name || ''}`.trim();
     } else if ('email' in sale.modifier) {
-      name = sale.modifier.email;
+      name = sale.modifier.email || 'Unknown Email';
     }
   }
 

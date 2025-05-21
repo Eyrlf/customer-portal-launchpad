@@ -233,7 +233,16 @@ const SaleDetailsPage = () => {
           .single();
         
         if (saleError) throw saleError;
-        setSale(saleData as SalesRecord);
+        
+        // Format sale data to match SalesRecord interface
+        const formattedSale: SalesRecord = {
+          ...saleData,
+          created_at: saleData.created_at || "",
+          created_by: saleData.created_by || null,
+          deleted_by: saleData.deleted_by || null
+        };
+        
+        setSale(formattedSale);
         
         // Fetch sales details with latest price history
         const { data: detailsData, error: detailsError } = await supabase

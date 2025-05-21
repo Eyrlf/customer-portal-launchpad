@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -99,15 +98,20 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           }
         }
 
-        return {
+        const enhancedSale: SalesRecord = {
           ...sale,
           modifier: modifierData,
           total_amount: totalAmount,
-          payment_status: paymentStatus
+          payment_status: paymentStatus,
+          created_at: sale.created_at || "",
+          created_by: sale.created_by || null,
+          deleted_by: sale.deleted_by || null
         };
+
+        return enhancedSale;
       }));
       
-      setSales(salesWithModifiers as SalesRecord[]);
+      setSales(salesWithModifiers);
       
       // Fetch deleted sales if showing deleted
       if (showDeleted && isAdmin) {
@@ -172,14 +176,19 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
             }
           }
           
-          return {
+          const enhancedDeletedSale: SalesRecord = {
             ...sale,
             modifier: modifierData,
-            total_amount: totalAmount
+            total_amount: totalAmount,
+            created_at: sale.created_at || "",
+            created_by: sale.created_by || null,
+            deleted_by: sale.deleted_by || null
           };
+          
+          return enhancedDeletedSale;
         }));
         
-        setDeletedSales(deletedSalesWithModifiers as SalesRecord[]);
+        setDeletedSales(deletedSalesWithModifiers);
       }
     } catch (error) {
       console.error('Error fetching sales:', error);
@@ -197,11 +206,22 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
     try {
       const { data, error } = await supabase
         .from('customer')
-        .select('custno, custname')
+        .select('custno, custname, address, city, phone, payterm')
         .is('deleted_at', null);
       
       if (error) throw error;
-      setCustomers(data || []);
+      
+      // Add missing fields with default values to ensure type compatibility
+      const customersWithDefaults = (data || []).map(customer => ({
+        custno: customer.custno,
+        custname: customer.custname,
+        address: customer.address || null,
+        city: customer.city || null,
+        phone: customer.phone || null,
+        payterm: customer.payterm || null
+      }));
+      
+      setCustomers(customersWithDefaults);
     } catch (error) {
       console.error('Error fetching customers:', error);
     }
@@ -214,7 +234,17 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
         .select('empno, firstname, lastname');
       
       if (error) throw error;
-      setEmployees(data || []);
+      
+      // Format employees data to match the Employee interface
+      const formattedEmployees = (data || []).map(emp => ({
+        empno: emp.empno,
+        firstname: emp.firstname || null,
+        lastname: emp.lastname || null,
+        empname: emp.firstname && emp.lastname ? `${emp.firstname} ${emp.lastname}` : null,
+        position: null // Default value since it's not fetched
+      }));
+      
+      setEmployees(formattedEmployees);
     } catch (error) {
       console.error('Error fetching employees:', error);
     }
