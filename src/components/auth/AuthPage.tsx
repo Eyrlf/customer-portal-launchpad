@@ -1,5 +1,4 @@
 
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,7 +37,7 @@ const AuthPage = () => {
               <SignInForm />
             </TabsContent>
             <TabsContent value="signup">
-              <SignUpForm onSuccess={() => {}} />
+              <SignUpForm onSuccess={() => navigate("/auth?tab=signin")} />
             </TabsContent>
           </Tabs>
         </CardContent>

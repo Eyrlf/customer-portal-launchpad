@@ -40,6 +40,8 @@ export interface Customer {
   city: string | null;
   phone: string | null;
   payterm?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 }
 
 export interface SalesRecord {

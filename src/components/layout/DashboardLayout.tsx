@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Users, Package, ShoppingCart, Bell, FileText,
-  Settings, LogOut, ChevronDown, Menu, X
+  Settings, LogOut, ChevronDown, Menu, X, HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface NotificationCount {
   count: number;
@@ -70,6 +71,25 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     navigate('/auth');
   };
 
+  const getInitials = () => {
+    if (profile?.first_name || profile?.last_name) {
+      const first = profile.first_name?.[0] || '';
+      const last = profile.last_name?.[0] || '';
+      return (first + last).toUpperCase();
+    }
+    return user?.email?.[0]?.toUpperCase() || '';
+  };
+
+  const getDisplayName = () => {
+    if (profile?.first_name && profile?.last_name) {
+      return `${profile.first_name} ${profile.last_name}`;
+    }
+    if (profile?.first_name) {
+      return profile.first_name;
+    }
+    return user?.email?.split('@')[0] || '';
+  };
+
   const menuItems = [
     {
       icon: <Package size={20} />,
@@ -100,6 +120,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       label: "Activity Logs",
       path: "/dashboard/activity-logs",
       visible: isAdmin,
+    },
+    {
+      icon: <HelpCircle size={20} />,
+      label: "Help & Support",
+      path: "/dashboard/help",
+      visible: true,
     },
     {
       icon: <Settings size={20} />,
@@ -194,13 +220,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2">
                     <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-primary text-white grid place-items-center">
-                        {profile?.first_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase()}
-                      </div>
+                      <Avatar className="w-8 h-8">
+                        {profile?.avatar_url ? (
+                          <AvatarImage src={profile.avatar_url} alt="Profile" />
+                        ) : (
+                          <AvatarFallback className="bg-primary text-white">
+                            {getInitials()}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
                       <span className="ml-2 hidden md:inline-block">
-                        {profile?.first_name 
-                          ? `${profile.first_name} ${profile.last_name || ''}`
-                          : user?.email?.split('@')[0]}
+                        {getDisplayName()}
                       </span>
                     </div>
                     <ChevronDown size={16} />

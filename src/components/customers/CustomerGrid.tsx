@@ -1,11 +1,10 @@
 
 import React from "react";
-import { Customer } from "../sales/types";
+import { Customer } from "../customers/CustomerService";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "../sales/StatusBadge";
 import { User, Phone, MapPin, Calendar } from "lucide-react";
 import { CustomerActions } from "./CustomerActions";
-import { formatDateOnlyByUserPreference } from "@/utils/dateFormatter";
 
 interface CustomerGridProps {
   customers: Customer[];
