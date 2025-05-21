@@ -25,6 +25,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UserPermission } from "../sales/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Customer {
   custno: string;
@@ -59,7 +60,7 @@ export function CustomersTable() {
       custno: "",
       custname: "",
       address: "",
-      payterm: "",
+      payterm: "COD",
     },
   });
 
@@ -90,17 +91,51 @@ export function CustomersTable() {
         custno: selectedCustomer.custno,
         custname: selectedCustomer.custname || "",
         address: selectedCustomer.address || "",
-        payterm: selectedCustomer.payterm || "",
+        payterm: selectedCustomer.payterm || "COD",
       });
     } else if (!isEditing) {
-      form.reset({
-        custno: "",
-        custname: "",
-        address: "",
-        payterm: "",
-      });
+      // Generate new customer number when adding a new customer
+      generateNewCustomerNumber();
+      form.setValue("custname", "");
+      form.setValue("address", "");
+      form.setValue("payterm", "COD");
     }
   }, [selectedCustomer, isEditing, form]);
+
+  const generateNewCustomerNumber = async () => {
+    try {
+      // Get the highest customer number
+      const { data, error } = await supabase
+        .from('customer')
+        .select('custno')
+        .order('custno', { ascending: false })
+        .limit(1);
+      
+      if (error) throw error;
+      
+      let nextNumber = "C0001"; // Default starting number
+      
+      if (data && data.length > 0) {
+        const lastNumber = data[0].custno;
+        // Extract the numeric part and increment
+        if (lastNumber.startsWith('C')) {
+          const numPart = parseInt(lastNumber.substring(1), 10);
+          if (!isNaN(numPart)) {
+            nextNumber = `C${String(numPart + 1).padStart(4, '0')}`;
+          }
+        }
+      }
+      
+      form.setValue("custno", nextNumber);
+    } catch (error) {
+      console.error('Error generating customer number:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate customer number.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const fetchUserPermissions = async () => {
     if (!user) return;
@@ -483,7 +518,7 @@ export function CustomersTable() {
                   <FormItem>
                     <FormLabel>Customer No</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled={isEditing} />
+                      <Input {...field} disabled={true} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -524,9 +559,21 @@ export function CustomersTable() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Payment Term</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select payment term" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="COD">COD</SelectItem>
+                        <SelectItem value="30D">30D</SelectItem>
+                        <SelectItem value="45D">45D</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

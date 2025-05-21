@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -238,13 +237,13 @@ export function SalesTable() {
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
-                          {(userPermissions.can_edit_sales || isAdmin) && (
+                          {(userPermissions?.can_edit_sales || isAdmin) && (
                             <DropdownMenuItem onClick={() => handleEdit(sale)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
                           )}
-                          {(userPermissions.can_delete_sales || isAdmin) && (
+                          {(userPermissions?.can_delete_sales || isAdmin) && (
                             <DropdownMenuItem onClick={() => handleDelete(sale)}>
                               <Trash className="mr-2 h-4 w-4" />
                               Delete
@@ -262,7 +261,7 @@ export function SalesTable() {
       </Table>
       
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{isEditing ? 'Edit Sale' : 'Add New Sale'}</DialogTitle>
           </DialogHeader>
@@ -271,7 +270,6 @@ export function SalesTable() {
             selectedSale={selectedSale}
             isEditing={isEditing}
             customers={customers}
-            employees={employees}
             onSubmitSuccess={handleFormSuccess}
             onCancel={() => setDialogOpen(false)}
           />
