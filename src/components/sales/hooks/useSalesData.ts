@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -129,7 +130,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           payment_status: paymentStatus,
           created_at: sale.created_at || new Date().toISOString(),
           created_by: sale.created_by || null,
-          deleted_by: sale.deleted_by || null, // Make sure this field exists
+          deleted_by: sale.deleted_by || null,
           deleted_at: sale.deleted_at || null,
           modified_at: sale.modified_at || null,
           modified_by: sale.modified_by || null
@@ -344,7 +345,9 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
         .from('sales')
         .update({ 
           deleted_at: null,
-          deleted_by: null
+          deleted_by: null,
+          modified_at: new Date().toISOString(),
+          modified_by: (await supabase.auth.getUser()).data.user?.id || null
         })
         .eq('transno', sale.transno);
       
@@ -377,12 +380,15 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
   const getRecordStatus = (sale: SalesRecord) => {
     if (sale.deleted_at) return 'Deleted';
     
-    if (sale.modified_by !== null && sale.modified_at !== null) {
-      return 'Edited';
-    }
-
-    if (sale.deleted_at !== null && sale.deleted_by === null) {
+    // Check if it was previously deleted and then restored
+    if (sale.modified_at && !sale.deleted_at && sale.deleted_by === null && 
+        sale.modified_by !== null && sale.modified_by !== sale.created_by) {
       return 'Restored';
+    }
+    
+    if (sale.modified_by !== null && sale.modified_at !== null &&
+        sale.modified_by !== sale.created_by) {
+      return 'Edited';
     }
     
     return 'Added';

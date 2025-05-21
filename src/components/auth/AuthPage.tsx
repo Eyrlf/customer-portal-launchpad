@@ -35,10 +35,10 @@ const AuthPage = () => {
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
             <TabsContent value="signin">
-              <SignInForm hideExtras={true} />
+              <SignInForm />
             </TabsContent>
             <TabsContent value="signup">
-              <SignUpForm />
+              <SignUpForm onSuccess={() => {}} />
             </TabsContent>
           </Tabs>
         </CardContent>

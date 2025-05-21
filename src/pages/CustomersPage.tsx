@@ -15,12 +15,24 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, LayoutGrid, TableProperties } from "lucide-react";
+import { useCustomersData } from "@/components/customers/hooks/useCustomersData";
+import { useCustomerActions } from "@/components/customers/hooks/useCustomerActions";
+import { useCustomerPermissions } from "@/components/customers/hooks/useCustomerPermissions";
 
 const CustomersPage = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [showDeleted, setShowDeleted] = useState(false);
+  
+  const { isAdmin } = useCustomerPermissions();
+  const { 
+    customers, 
+    deletedCustomers, 
+    loading: loadingCustomers 
+  } = useCustomersData(showDeleted, isAdmin);
+  const { onDelete, onEdit, onView, getCustomerStatus } = useCustomerActions();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -68,7 +80,15 @@ const CustomersPage = () => {
         {viewMode === "table" ? (
           <CustomersTable sortOrder={sortOrder} />
         ) : (
-          <CustomersTable sortOrder={sortOrder} viewMode="grid" />
+          <CustomerGrid 
+            customers={showDeleted && isAdmin ? deletedCustomers : customers} 
+            onDelete={onDelete}
+            onEdit={onEdit}
+            onView={onView}
+            getCustomerStatus={getCustomerStatus}
+            isDeleting={showDeleted}
+            isAdmin={isAdmin}
+          />
         )}
       </div>
     </DashboardLayout>

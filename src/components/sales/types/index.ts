@@ -52,7 +52,7 @@ export interface SalesRecord {
   modified_at: string | null;
   modified_by: string | null;
   deleted_at: string | null;
-  deleted_by: string | null; // Adding this to fix TypeScript errors
+  deleted_by: string | null; 
   empno?: string | null;
   payment_status?: 'Paid' | 'Partial' | 'Unpaid';
   customer?: Customer | null;

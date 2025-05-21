@@ -142,7 +142,6 @@ export function useSaleFormState(
       const { data: activeDetails, error: activeError } = await supabase
         .from('salesdetail')
         .select(`
-          id,
           transno,
           prodcode, 
           quantity,
@@ -158,7 +157,6 @@ export function useSaleFormState(
       const { data: deletedDetails, error: deletedError } = await supabase
         .from('salesdetail')
         .select(`
-          id,
           transno,
           prodcode, 
           quantity,
@@ -172,7 +170,7 @@ export function useSaleFormState(
       
       if (activeDetails && activeDetails.length > 0) {
         const items = await Promise.all(
-          activeDetails.map(async (detail: SalesDetailFromDB) => {
+          activeDetails.map(async (detail: any) => {
             // Get the latest price for this product
             const { data: priceData } = await supabase
               .from('pricehist')
@@ -184,7 +182,6 @@ export function useSaleFormState(
             const unitprice = priceData && priceData.length > 0 ? priceData[0].unitprice : 0;
             
             return {
-              id: detail.id,
               prodcode: detail.prodcode,
               quantity: Number(detail.quantity),
               unitprice,
@@ -194,9 +191,8 @@ export function useSaleFormState(
         
         setSaleItems(items);
         
-        // Update form with items data including id field
+        // Update form with items data
         form.setValue('items', items.map(item => ({ 
-          id: item.id,
           prodcode: item.prodcode, 
           quantity: item.quantity,
           deleted_at: null
@@ -207,7 +203,7 @@ export function useSaleFormState(
       
       if (deletedDetails && deletedDetails.length > 0) {
         const items = await Promise.all(
-          deletedDetails.map(async (detail: SalesDetailFromDB) => {
+          deletedDetails.map(async (detail: any) => {
             // Get the latest price for this product
             const { data: priceData } = await supabase
               .from('pricehist')
@@ -219,7 +215,6 @@ export function useSaleFormState(
             const unitprice = priceData && priceData.length > 0 ? priceData[0].unitprice : 0;
             
             return {
-              id: detail.id,
               prodcode: detail.prodcode,
               quantity: Number(detail.quantity),
               unitprice,

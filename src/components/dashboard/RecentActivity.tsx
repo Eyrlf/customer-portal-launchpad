@@ -88,6 +88,21 @@ export function RecentActivity() {
       .join(' ');
   };
 
+  const getFormattedAction = (action: string) => {
+    switch (action.toLowerCase()) {
+      case 'insert':
+        return 'inserted';
+      case 'update':
+        return 'updated';
+      case 'delete':
+        return 'deleted';
+      case 'restore':
+        return 'restored';
+      default:
+        return action;
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -116,7 +131,7 @@ export function RecentActivity() {
               <p className="text-sm font-medium">
                 <span className="text-blue-600">{activity.user_name}</span>
                 {' '}
-                {activity.action.toLowerCase()}d a {getTableDisplayName(activity.table_name).toLowerCase()} record
+                {getFormattedAction(activity.action)} a {getTableDisplayName(activity.table_name).toLowerCase()} record
                 {activity.details?.name && <span> - {activity.details.name}</span>}
               </p>
               <p className="text-xs text-gray-500">
