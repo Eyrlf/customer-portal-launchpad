@@ -27,12 +27,12 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
       
       if (activeError) throw activeError;
 
-      // For each sale, fetch the modifier (user) data separately
+      // For each sale, fetch the modifier (user) data and payments separately
       const salesWithModifiers = await Promise.all((activeSales || []).map(async (sale) => {
         let modifierData = null;
         
         if (sale.modified_by) {
-          // Fetch the user data from the profiles table instead
+          // Fetch the user data from the profiles table
           const { data: userData, error: userError } = await supabase
             .from('profiles')
             .select('*')
@@ -41,7 +41,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           
           if (!userError && userData) {
             modifierData = {
-              email: userData.id, // Use ID as email placeholder since we can't access auth.users
+              email: userData.id, // Use ID as email placeholder
               user_metadata: {
                 first_name: userData.first_name,
                 last_name: userData.last_name
