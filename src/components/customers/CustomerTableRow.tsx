@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { CustomerActions } from "./CustomerActions";
 import { StatusBadge } from "../sales/StatusBadge";
 import { getCustomerStatus } from "./CustomerService";
+import { formatDate } from "../sales/utils/formatters";
 
 interface Customer {
   custno: string;
@@ -14,6 +15,7 @@ interface Customer {
   modified_at?: string | null;
   modified_by?: string | null;
   action?: string; // Used to track restore action
+  phone?: string | null;
 }
 
 interface CustomerTableRowProps {
@@ -57,9 +59,37 @@ export function CustomerTableRow({
       </TableCell>
       <TableCell>{customer.address || 'N/A'}</TableCell>
       <TableCell>{customer.payterm || 'N/A'}</TableCell>
-      <TableCell>
-        <StatusBadge status={status} />
-      </TableCell>
+      
+      {/* Only show Status column for admin users */}
+      {isAdmin && (
+        <TableCell>
+          <StatusBadge status={status} />
+        </TableCell>
+      )}
+      
+      {/* Only show Stamp column for admin users */}
+      {isAdmin && (
+        <TableCell className="text-xs text-gray-500">
+          {customer.modified_at && (
+            <div>
+              Modified: {formatDate(customer.modified_at)}
+              <br />
+              By: {customer.modified_by || 'Unknown'}
+            </div>
+          )}
+          {customer.deleted_at && !customer.modified_at && (
+            <div>
+              Deleted: {formatDate(customer.deleted_at)}
+            </div>
+          )}
+          {!customer.deleted_at && !customer.modified_at && (
+            <div>
+              Created: {formatDate(customer.created_at || '')}
+            </div>
+          )}
+        </TableCell>
+      )}
+      
       <TableCell>
         <CustomerActions
           customer={customer}

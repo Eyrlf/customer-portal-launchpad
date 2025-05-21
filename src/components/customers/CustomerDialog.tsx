@@ -6,7 +6,7 @@ interface CustomerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isEditing: boolean;
-  formDefaults?: CustomerFormValues;
+  formDefaults?: CustomerFormValues | null | undefined;
   onSubmit: (values: CustomerFormValues) => void;
 }
 
@@ -14,10 +14,10 @@ export function CustomerDialog({
   open,
   onOpenChange,
   isEditing,
-  formDefaults = {}, // Provide default empty object
+  formDefaults,
   onSubmit
 }: CustomerDialogProps) {
-  // Ensure formDefaults is never undefined and set default values
+  // Ensure formDefaults is never undefined or null and set default values
   const defaultValues: CustomerFormValues = {
     custno: formDefaults?.custno || "",
     custname: formDefaults?.custname || "",

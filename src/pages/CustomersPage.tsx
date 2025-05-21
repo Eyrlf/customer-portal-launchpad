@@ -7,7 +7,7 @@ import { useCustomersData } from '@/components/customers/hooks/useCustomersData'
 import { useCustomerActions } from '@/components/customers/hooks/useCustomerActions';
 import { useCustomerPermissions } from '@/components/customers/hooks/useCustomerPermissions';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid, List } from 'lucide-react';
+import { Grid, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { CustomerGrid } from '@/components/customers/CustomerGrid';
@@ -103,12 +103,7 @@ const CustomersPage = () => {
                 <Grid className="h-4 w-4" />
               </Button>
             </div>
-            {canAddCustomer && (
-              <Button onClick={prepareNewCustomerForm}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Customer
-              </Button>
-            )}
+            {/* Removed the duplicate Add Customer button here */}
           </div>
         </div>
 

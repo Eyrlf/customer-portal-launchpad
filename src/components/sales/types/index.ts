@@ -45,6 +45,7 @@ export interface Customer {
   modified_at?: string | null;
   modified_by?: string | null;
   action?: string;
+  created_at?: string | null;
 }
 
 export interface SalesRecord {

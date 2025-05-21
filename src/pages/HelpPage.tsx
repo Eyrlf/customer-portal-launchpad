@@ -34,11 +34,8 @@ const HelpPage = () => {
     {
       question: "How do I view sales for a specific customer?",
       answer: "You can view sales for a specific customer by navigating to the Customer Details page. Click on a customer's name in the Customers list, and you will see a list of all sales associated with that customer."
-    },
-    {
-      question: "How do I mark a sale as paid?",
-      answer: "To mark a sale as paid, go to the Sales Details page for the specific sale and look for the payment status section. You can update the status to 'Paid' from there. You may need appropriate permissions to change payment status."
     }
+    // Removed the "How do I mark a sale as paid?" FAQ
   ];
 
   // Define user guides
@@ -114,21 +111,7 @@ const HelpPage = () => {
           </TabsContent>
         </Tabs>
         
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Contact Support</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-700 mb-4">
-              Can't find what you're looking for? Our support team is here to help!
-            </p>
-            <div className="space-y-2">
-              <p><strong>Email:</strong> support@customerms.com</p>
-              <p><strong>Phone:</strong> +1 (123) 456-7890</p>
-              <p><strong>Hours:</strong> Monday-Friday, 9AM-5PM EST</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Removed the Contact Support card */}
       </div>
     </DashboardLayout>
   );

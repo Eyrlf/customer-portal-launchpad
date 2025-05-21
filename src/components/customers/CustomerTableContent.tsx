@@ -1,8 +1,8 @@
 
 import React from "react";
-import { Table, TableBody, TableCaption, TableCell, TableRow } from "@/components/ui/table";
-import { CustomerTableRow } from "./CustomerTableRow";
+import { Table, TableBody } from "@/components/ui/table";
 import { CustomerTableHeader } from "./CustomerTableHeader";
+import { CustomerTableRow } from "./CustomerTableRow";
 import { Customer } from "./CustomerService";
 
 interface CustomerTableContentProps {
@@ -34,39 +34,44 @@ export function CustomerTableContent({
   sortDirection,
   toggleSort
 }: CustomerTableContentProps) {
+  if (loading) {
+    return <div className="text-center p-6">Loading customers...</div>;
+  }
+
   return (
-    <Table>
-      <TableCaption>{loading ? 'Loading customers...' : 'List of customers.'}</TableCaption>
-      
-      <CustomerTableHeader 
-        sortField={sortField}
-        sortDirection={sortDirection}
-        toggleSort={toggleSort}
-      />
-      
-      <TableBody>
-        {filteredCustomers.length === 0 && !loading ? (
-          <TableRow>
-            <TableCell colSpan={6} className="text-center">
-              {showDeleted ? "No deleted customers found." : "No customers found."}
-            </TableCell>
-          </TableRow>
-        ) : (
-          filteredCustomers.map((customer) => (
-            <CustomerTableRow 
-              key={customer.custno}
-              customer={customer}
-              showDeleted={showDeleted}
-              isAdmin={isAdmin}
-              canEditCustomer={canEditCustomer}
-              canDeleteCustomer={canDeleteCustomer}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onRestore={onRestore}
-            />
-          ))
-        )}
-      </TableBody>
-    </Table>
+    <div className="rounded-md border">
+      <Table>
+        <CustomerTableHeader 
+          sortField={sortField} 
+          sortDirection={sortDirection} 
+          toggleSort={toggleSort}
+          isAdmin={isAdmin}
+        />
+        
+        <TableBody>
+          {filteredCustomers.length === 0 ? (
+            <tr>
+              <td colSpan={isAdmin ? 7 : 5} className="h-24 text-center text-muted-foreground">
+                No customers found.
+              </td>
+            </tr>
+          ) : (
+            filteredCustomers.map((customer) => (
+              <CustomerTableRow
+                key={customer.custno}
+                customer={customer}
+                showDeleted={showDeleted}
+                isAdmin={isAdmin}
+                canEditCustomer={canEditCustomer}
+                canDeleteCustomer={canDeleteCustomer}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onRestore={onRestore}
+              />
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
