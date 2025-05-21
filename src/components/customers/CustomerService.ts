@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CustomerFormValues } from "./CustomerForm";
 
@@ -110,8 +111,6 @@ export async function updateCustomer(custno: string, values: Omit<CustomerFormVa
         custname: values.custname,
         address: values.address,
         payterm: values.payterm || 'COD',
-        modified_at: new Date().toISOString(),
-        modified_by: (await supabase.auth.getUser()).data.user?.id
       })
       .eq('custno', custno);
     
@@ -183,21 +182,7 @@ export async function restoreCustomer(customer: Customer) {
       throw error;
     }
     
-    // Update modification tracking in a separate call to avoid potential conflicts
-    const { error: updateError } = await supabase
-      .from('customer')
-      .update({
-        modified_at: new Date().toISOString(),
-        modified_by: (await supabase.auth.getUser()).data.user?.id
-      })
-      .eq('custno', customer.custno);
-      
-    if (updateError) {
-      console.error("Error updating modification tracking:", updateError);
-      // Continue anyway since the main restore was successful
-    }
-    
-    // Log activity
+    // Log activity for the restore operation
     await supabase.rpc('log_activity', {
       action: 'restore',
       table_name: 'customer',
@@ -205,7 +190,13 @@ export async function restoreCustomer(customer: Customer) {
       details: JSON.stringify(customer),
     });
     
-    return { success: true };
+    // Manual update of the in-memory customer object to reflect changes
+    const updatedCustomer = {
+      ...customer,
+      deleted_at: null
+    };
+    
+    return { success: true, customer: updatedCustomer };
   } catch (error) {
     console.error("Error in restoreCustomer:", error);
     throw error;
