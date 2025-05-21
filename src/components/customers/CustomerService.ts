@@ -10,6 +10,7 @@ export interface Customer {
   deleted_at: string | null;
   modified_at?: string | null;
   modified_by?: string | null;
+  action?: string; // Used to track restore action
 }
 
 export async function fetchCustomers() {
@@ -75,6 +76,8 @@ export async function createCustomer(values: CustomerFormValues) {
         custname: values.custname,
         address: values.address,
         payterm: values.payterm || 'COD', // Ensure payterm has a default value
+        modified_at: null, // Ensure it's null for new customers
+        modified_by: null  // Ensure it's null for new customers
       });
     
     if (error) throw error;
@@ -176,7 +179,8 @@ export async function restoreCustomer(customer: Customer) {
       .from('customer')
       .update({ 
         deleted_at: null,
-        // Don't set modified_at or modified_by so it appears as new/restored
+        // Set action to 'restore' to mark this as a restored customer
+        // This field isn't in the DB, but we'll add it to the returned object
       })
       .eq('custno', customer.custno);
     
@@ -208,16 +212,16 @@ export async function restoreCustomer(customer: Customer) {
 }
 
 export function getCustomerStatus(customer: Customer) {
+  // If deleted, return 'Deleted'
   if (customer.deleted_at) return 'Deleted';
   
-  // Check for the action property if available (used when restored)
-  const customerAny = customer as any;
-  if (customerAny.action === 'restore') {
+  // If it has the restore action, return 'Restored'
+  if (customer.action === 'restore') {
     return 'Restored';
   }
   
-  // Check if the customer has been modified after creation
-  if (customer.modified_at !== null && customer.modified_by !== null) {
+  // If it has modified fields, return 'Edited'
+  if (customer.modified_at && customer.modified_by) {
     return 'Edited';
   }
   

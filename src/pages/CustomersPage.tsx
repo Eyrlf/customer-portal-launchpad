@@ -11,12 +11,15 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Plus, LayoutGrid, TableProperties } from "lucide-react";
 
 const CustomersPage = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -42,23 +45,25 @@ const CustomersPage = () => {
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Customers</h1>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="sort-order">Sort by Customer No:</Label>
-              <Select
-                value={sortOrder}
-                onValueChange={(value: "asc" | "desc") => setSortOrder(value)}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Sort Order" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asc">Ascending</SelectItem>
-                  <SelectItem value="desc">Descending</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Tabs 
+              value={viewMode} 
+              onValueChange={(value: "table" | "grid") => setViewMode(value)}
+              className="border rounded-md"
+            >
+              <TabsList>
+                <TabsTrigger value="grid" className="flex items-center gap-1">
+                  <LayoutGrid size={16} />
+                  Grid
+                </TabsTrigger>
+                <TabsTrigger value="table" className="flex items-center gap-1">
+                  <TableProperties size={16} />
+                  Table
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
+        
         <CustomersTable sortOrder={sortOrder} />
       </div>
     </DashboardLayout>

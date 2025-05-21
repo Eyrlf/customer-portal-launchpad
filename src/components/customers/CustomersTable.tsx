@@ -1,11 +1,13 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
   TableHead, TableHeader, TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, Search, ArrowUpDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserPermission } from "../sales/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,12 +20,23 @@ import {
   updateCustomer,
   deleteCustomer,
   restoreCustomer,
-  getCustomerStatus
 } from "./CustomerService";
 import { CustomerTableRow } from "./CustomerTableRow";
 import { CustomerDialog } from "./CustomerDialog";
 import { CustomerFormValues } from "./CustomerForm";
-import { Link } from "react-router-dom";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CustomersTableProps {
   sortOrder?: "asc" | "desc";
@@ -44,6 +57,10 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
     address: "",
     payterm: "COD",
   });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All Status");
+  const [sortField, setSortField] = useState<"custno" | "custname" | "payterm">("custno");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">(sortOrder);
   
   const { toast } = useToast();
   const { isAdmin, user } = useAuth();
@@ -72,70 +89,23 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
     }
   }, [showDeleted, isAdmin, user]);
 
-  // Sort customers when sortOrder changes
+  // Apply the sort order from props
   useEffect(() => {
-    // Sort the customers based on the sortOrder
-    const sortCustomers = () => {
-      const sortedCustomers = [...customers].sort((a, b) => {
-        if (sortOrder === "asc") {
-          return a.custno.localeCompare(b.custno);
-        } else {
-          return b.custno.localeCompare(a.custno);
-        }
-      });
-      
-      setCustomers(sortedCustomers);
-
-      // Also sort deleted customers if showing them
-      if (showDeleted) {
-        const sortedDeletedCustomers = [...deletedCustomers].sort((a, b) => {
-          if (sortOrder === "asc") {
-            return a.custno.localeCompare(b.custno);
-          } else {
-            return b.custno.localeCompare(a.custno);
-          }
-        });
-        
-        setDeletedCustomers(sortedDeletedCustomers);
-      }
-    };
-    
-    if (customers.length > 0 || (showDeleted && deletedCustomers.length > 0)) {
-      sortCustomers();
-    }
-  }, [sortOrder, customers.length, deletedCustomers.length]);
+    setSortDirection(sortOrder);
+    loadCustomersData();
+  }, [sortOrder]);
 
   const loadCustomersData = async () => {
     setLoading(true);
     try {
       // Fetch active customers
       const activeCustomers = await fetchCustomers();
-      
-      // Sort customers based on current sort order
-      const sortedCustomers = [...activeCustomers].sort((a, b) => {
-        if (sortOrder === "asc") {
-          return a.custno.localeCompare(b.custno);
-        } else {
-          return b.custno.localeCompare(a.custno);
-        }
-      });
-      
-      setCustomers(sortedCustomers);
+      setCustomers(activeCustomers);
       
       // Fetch deleted customers if showing deleted
       if (showDeleted && isAdmin) {
         const deletedCustomersData = await fetchDeletedCustomers();
-        
-        // Sort deleted customers
-        const sortedDeletedCustomers = [...deletedCustomersData].sort((a, b) => {
-          if (sortOrder === "asc") {
-            return a.custno.localeCompare(b.custno);
-          } else {
-            return b.custno.localeCompare(a.custno);
-          }
-        });
-        
-        setDeletedCustomers(sortedDeletedCustomers);
+        setDeletedCustomers(deletedCustomersData);
       }
     } catch (error) {
       console.error('Error fetching customers:', error);
@@ -148,11 +118,6 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
       setLoading(false);
     }
   };
-
-  // This effect updates the data when sortOrder changes
-  useEffect(() => {
-    loadCustomersData();
-  }, [sortOrder]);
 
   const fetchUserPermissions = async () => {
     if (!user) return;
@@ -380,20 +345,60 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
   const canEditCustomer = isAdmin || (userPermissions?.can_edit_customers || false);
   const canDeleteCustomer = isAdmin || (userPermissions?.can_delete_customers || false);
 
-  // Combine and sort all customers according to the filter and sort settings
-  const displayedCustomers = useMemo(() => {
-    if (showDeleted) {
-      return deletedCustomers;
+  // Filter and sort customers
+  const filteredCustomers = useMemo(() => {
+    const dataSource = showDeleted ? deletedCustomers : customers;
+    
+    return dataSource.filter(customer => {
+      // Apply search filter
+      const matchesSearch = searchQuery === "" || 
+        (customer.custname?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        customer.custno.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        customer.address?.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      // Apply status filter
+      let matchesStatus = true;
+      if (statusFilter !== "All Status") {
+        const status = showDeleted ? "Deleted" : 
+                    (customer.modified_at ? "Edited" : "Added");
+        matchesStatus = statusFilter === status;
+      }
+
+      return matchesSearch && matchesStatus;
+    }).sort((a, b) => {
+      // Apply sorting
+      let comparison = 0;
+      
+      if (sortField === "custno") {
+        comparison = a.custno.localeCompare(b.custno);
+      } else if (sortField === "custname") {
+        comparison = (a.custname || "").localeCompare(b.custname || "");
+      } else if (sortField === "payterm") {
+        comparison = (a.payterm || "").localeCompare(b.payterm || "");
+      }
+      
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [customers, deletedCustomers, showDeleted, searchQuery, statusFilter, sortField, sortDirection]);
+
+  const toggleSort = (field: "custno" | "custname" | "payterm") => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      return customers;
+      setSortField(field);
+      setSortDirection("asc");
     }
-  }, [customers, deletedCustomers, showDeleted]);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow p-6 dark:bg-gray-800">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Customers</h2>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => toggleSort("custno")}>
+            <span className="mr-1">No</span>
+            <ArrowUpDown size={16} />
+          </Button>
           {isAdmin && (
             <Button
               variant="outline"
@@ -410,26 +415,70 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
         </div>
       </div>
       
+      {/* Search and Filter Controls */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Input 
+            placeholder="Search customers..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Filter by Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All Status">All Status</SelectItem>
+            <SelectItem value="Added">Added</SelectItem>
+            <SelectItem value="Edited">Edited</SelectItem>
+            <SelectItem value="Restored">Restored</SelectItem>
+            {showDeleted && <SelectItem value="Deleted">Deleted</SelectItem>}
+          </SelectContent>
+        </Select>
+        
+        <Select value={sortField} onValueChange={(value: any) => setSortField(value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="custno">Customer No</SelectItem>
+            <SelectItem value="custname">Customer Name</SelectItem>
+            <SelectItem value="payterm">Payment Term</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
       <Table>
         <TableCaption>{loading ? 'Loading customers...' : 'List of customers.'}</TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead>Customer No</TableHead>
-            <TableHead>Name</TableHead>
+            <TableHead className="cursor-pointer" onClick={() => toggleSort("custno")}>
+              Customer No {sortField === "custno" && (sortDirection === "asc" ? "↑" : "↓")}
+            </TableHead>
+            <TableHead className="cursor-pointer" onClick={() => toggleSort("custname")}>
+              Name {sortField === "custname" && (sortDirection === "asc" ? "↑" : "↓")}
+            </TableHead>
             <TableHead>Address</TableHead>
-            <TableHead>Payment Term</TableHead>
+            <TableHead className="cursor-pointer" onClick={() => toggleSort("payterm")}>
+              Payment Term {sortField === "payterm" && (sortDirection === "asc" ? "↑" : "↓")}
+            </TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {displayedCustomers.length === 0 && !loading ? (
+          {filteredCustomers.length === 0 && !loading ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center">
+              <TableCell colSpan={6} className="text-center">
                 {showDeleted ? "No deleted customers found." : "No customers found."}
               </TableCell>
             </TableRow>
           ) : (
-            displayedCustomers.map((customer) => (
+            filteredCustomers.map((customer) => (
               <CustomerTableRow 
                 key={customer.custno}
                 customer={customer}
