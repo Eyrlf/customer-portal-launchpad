@@ -1,23 +1,6 @@
 
 import { z } from "zod";
-import { SalesRecord, Customer } from "../types";
-
-// Product interface
-export interface Product {
-  prodcode: string;
-  description: string | null;
-  unit: string | null;
-  unitprice?: number;
-}
-
-// SaleItem interface with optional id and deleted_at
-export interface SaleItem {
-  id?: string;
-  prodcode: string;
-  quantity: number;
-  unitprice: number;
-  deleted_at?: string | null;
-}
+import { SalesRecord, Customer, SaleItem } from "../types";
 
 // Form schema with updated items to include id and deleted_at
 export const formSchema = z.object({
@@ -44,13 +27,4 @@ export interface SaleFormProps {
   customers: Customer[];
   onSubmitSuccess: () => void;
   onCancel: () => void;
-}
-
-// Type for salesdetail items from DB
-export interface SalesDetailFromDB {
-  id: string;
-  prodcode: string;
-  quantity: number;
-  transno: string;
-  deleted_at?: string | null;
 }

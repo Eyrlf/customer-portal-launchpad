@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Edit, Trash, MoreVertical, RefreshCcw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { SalesDetailItem } from "./types";
 
 interface SalesDetailActionsProps {

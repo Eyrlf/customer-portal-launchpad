@@ -1,7 +1,6 @@
 
-import { z } from "zod";
+// Define the base types for our application
 
-// Allow for the error case in the modifier type
 export type UserModifier = {
   email: string;
   user_metadata: {
@@ -40,6 +39,9 @@ export interface Customer {
   custname: string;
   address?: string | null;
   payterm?: string | null;
+  deleted_at?: string | null;
+  modified_at?: string | null;
+  modified_by?: string | null;
 }
 
 export interface Employee {
@@ -80,4 +82,30 @@ export interface UserPermission {
   can_delete_salesdetails: boolean;
   created_at: string;
   updated_at: string;
+}
+
+// Product interface
+export interface Product {
+  prodcode: string;
+  description: string | null;
+  unit: string | null;
+  unitprice?: number;
+}
+
+// SaleItem interface with optional id and deleted_at
+export interface SaleItem {
+  id?: string;
+  prodcode: string;
+  quantity: number;
+  unitprice: number;
+  deleted_at?: string | null;
+}
+
+// Type for salesdetail items from DB
+export interface SalesDetailFromDB {
+  id: string;
+  prodcode: string;
+  quantity: number;
+  transno: string;
+  deleted_at?: string | null;
 }

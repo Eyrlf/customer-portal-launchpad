@@ -102,7 +102,6 @@ export function SaleFormHeader({ form, customers }: SaleFormHeaderProps) {
             <FormMessage />
           </FormItem>
         )}
-      />
-    </>
-  );
-}
+      </>
+    );
+  }

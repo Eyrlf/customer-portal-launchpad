@@ -1,9 +1,8 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FormValues, SaleItem } from "./types";
-import { SalesRecord } from "../types";
+import { FormValues } from "./types";
+import { SalesRecord, SaleItem } from "../types";
 import { UseFormReturn } from "react-hook-form";
 
 interface UseSaleFormActionsProps {
@@ -98,7 +97,7 @@ export function useSaleFormActions({
       }
       
       if (isEditing && selectedSale) {
-        // Update existing sale
+        // Update existing sale logic
         const { error } = await supabase
           .from('sales')
           .update({
@@ -167,7 +166,7 @@ export function useSaleFormActions({
           details: JSON.stringify({...values, total_amount: totalAmount}),
         });
       } else {
-        // Create new sale
+        // Create new sale logic
         console.log("Creating new sale with values:", values);
         
         // Make sure transno is not empty
@@ -269,9 +268,7 @@ export function useSaleFormActions({
     const formItems = form.getValues('items') || [];
     form.setValue('items', [...formItems, { 
       prodcode: "", 
-      quantity: 1, 
-      id: undefined,
-      deleted_at: null
+      quantity: 1 
     }]);
   };
 
@@ -389,13 +386,12 @@ export function useSaleFormActions({
       
       setDeletedItems(updatedDeletedItems);
       
-      // Update form values
-      const currentItems = form.getValues('items');
+      // Update form values - fixed to match the form schema
+      const currentItems = form.getValues('items') || [];
       form.setValue('items', [...currentItems, { 
         id: restoredItem.id,
         prodcode: restoredItem.prodcode, 
-        quantity: restoredItem.quantity,
-        deleted_at: null
+        quantity: restoredItem.quantity
       }]);
       
       calculateTotal([...saleItems, restoredItem]);

@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-import { SalesRecord, Customer } from "./types";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Form } from "@/components/ui/form";
@@ -9,6 +8,9 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+// Import our types from the main types file
+import { SalesRecord, Customer } from "./types";
 
 // Import our new components and hooks
 import { SaleFormHeader } from "./form/SaleFormHeader";
