@@ -36,10 +36,20 @@ export interface SalesRecord {
 export interface Customer {
   custno: string;
   custname: string;
+  address?: string | null;
+  payterm?: string | null;
 }
 
 export interface Employee {
   empno: string;
   firstname: string;
   lastname: string;
+}
+
+// Add the Payment interface
+export interface Payment {
+  orno: string;
+  amount: number | null;
+  paydate: string | null;
+  transno: string | null;
 }
