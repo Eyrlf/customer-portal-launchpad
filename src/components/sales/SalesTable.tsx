@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -146,6 +147,12 @@ export function SalesTable() {
     fetchSales();
   };
 
+  const getRecordStatus = (sale: SalesRecord) => {
+    if (showDeleted && sale.deleted_at) return 'Deleted';
+    if (sale.modified_at && !sale.deleted_at) return 'Edited';
+    return 'Added';
+  };
+
   const canAddSale = isAdmin || (userPermissions?.can_add_sales || false);
   const canEditSale = isAdmin || (userPermissions?.can_edit_sales || false);
   const canDeleteSale = isAdmin || (userPermissions?.can_delete_sales || false);
@@ -209,7 +216,7 @@ export function SalesTable() {
                   {sale.customer?.custname || sale.custno || 'N/A'}
                 </TableCell>
                 <TableCell>
-                  <StatusBadge status={sale.payment_status} />
+                  <StatusBadge status={getRecordStatus(sale)} />
                 </TableCell>
                 <TableCell className="whitespace-pre-line text-xs">
                   {formatModifierInfo(sale)}

@@ -17,7 +17,7 @@ interface ActivityLog {
   record_id: string;
   details: any;
   created_at: string;
-  user_email?: string;
+  user_name?: string;
 }
 
 export function ActivityLogs() {
@@ -42,22 +42,30 @@ export function ActivityLogs() {
       
       if (error) throw error;
       
-      // Fetch user emails for each log
+      // Fetch user profiles for each log to get their names
       const logsWithUserInfo = await Promise.all(
         (data || []).map(async (log) => {
-          if (!log.user_id) return { ...log, user_email: 'System' };
+          if (!log.user_id) return { ...log, user_name: 'System' };
           
           try {
-            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
-              log.user_id
-            );
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('first_name, last_name, email')
+              .eq('id', log.user_id)
+              .single();
             
-            return {
-              ...log,
-              user_email: userData?.user?.email || 'Unknown',
-            };
+            if (profileError || !profileData) {
+              return { ...log, user_name: 'Unknown User' };
+            }
+            
+            const userName = profileData.first_name && profileData.last_name 
+              ? `${profileData.first_name} ${profileData.last_name}`.trim()
+              : profileData.email || 'Unknown User';
+            
+            return { ...log, user_name: userName };
           } catch (e) {
-            return { ...log, user_email: 'Unknown' };
+            console.error('Error fetching user profile:', e);
+            return { ...log, user_name: 'Unknown User' };
           }
         })
       );
@@ -128,7 +136,7 @@ export function ActivityLogs() {
             logs.map((log) => (
               <TableRow key={log.id}>
                 <TableCell>{formatDate(log.created_at)}</TableCell>
-                <TableCell>{log.user_email}</TableCell>
+                <TableCell>{log.user_name}</TableCell>
                 <TableCell>{formatActionBadge(log.action)}</TableCell>
                 <TableCell>{log.table_name}</TableCell>
                 <TableCell className="font-mono text-xs">{log.record_id}</TableCell>
