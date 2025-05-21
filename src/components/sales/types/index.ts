@@ -1,3 +1,4 @@
+
 // Allow for the error case in the modifier type
 export type UserModifier = {
   email: string;
@@ -51,6 +52,15 @@ export interface Payment {
   amount: number | null;
   paydate: string | null;
   transno: string | null;
+}
+
+// Add the SalesDetailItem interface
+export interface SalesDetailItem {
+  id: string;
+  transno: string;
+  prodcode: string;
+  quantity: number;
+  deleted_at?: string | null;
 }
 
 // Add the UserPermission interface

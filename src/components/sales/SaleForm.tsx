@@ -51,6 +51,14 @@ interface SaleItem {
   deleted_at?: string | null;
 }
 
+// Define the item structure for the form schema
+interface SaleFormItem {
+  id?: string;
+  prodcode: string;
+  quantity: number;
+  deleted_at?: string | null;
+}
+
 // Updated the form schema to match the SaleItem interface
 const formSchema = z.object({
   transno: z.string().min(1, "Transaction number is required"),

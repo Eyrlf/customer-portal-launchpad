@@ -9,14 +9,7 @@ import {
 import { Edit, Trash, MoreVertical, RefreshCcw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-interface SalesDetailItem {
-  id: string;
-  transno: string;
-  prodcode: string;
-  quantity: number;
-  deleted_at?: string | null;
-}
+import { SalesDetailItem } from "./types";
 
 interface SalesDetailActionsProps {
   item: SalesDetailItem;
