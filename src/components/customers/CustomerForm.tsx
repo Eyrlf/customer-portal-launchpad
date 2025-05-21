@@ -10,20 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DialogFooter } from "@/components/ui/dialog";
 
-interface Customer {
-  custno: string;
-  custname: string | null;
-  address: string | null;
-  payterm: string | null;
-  deleted_at: string | null;
-  modified_at?: string | null;
-  modified_by?: string | null;
-}
-
 export const customerFormSchema = z.object({
   custno: z.string().min(1, "Customer number is required"),
-  custname: z.string().min(1, "Customer name is required"),
-  address: z.string().optional(),
+  custname: z.string().min(1, "Customer name is required").max(20, "Customer name must be 20 characters or less"),
+  address: z.string().optional().transform(val => val || "").pipe(z.string().max(50, "Address must be 50 characters or less")),
   payterm: z.string().optional(),
 });
 
@@ -71,7 +61,7 @@ export function CustomerForm({
             <FormItem>
               <FormLabel>Customer Name</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} maxLength={20} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -85,7 +75,7 @@ export function CustomerForm({
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} maxLength={50} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -59,6 +59,15 @@ export async function generateNewCustomerNumber() {
 
 export async function createCustomer(values: CustomerFormValues) {
   try {
+    // Check field lengths to ensure they don't exceed database constraints
+    if (values.custname && values.custname.length > 20) {
+      values.custname = values.custname.substring(0, 20);
+    }
+    
+    if (values.address && values.address.length > 50) {
+      values.address = values.address.substring(0, 50);
+    }
+    
     const { data, error } = await supabase
       .from('customer')
       .insert({
@@ -87,6 +96,15 @@ export async function createCustomer(values: CustomerFormValues) {
 
 export async function updateCustomer(custno: string, values: Omit<CustomerFormValues, 'custno'>) {
   try {
+    // Check field lengths to ensure they don't exceed database constraints
+    if (values.custname && values.custname.length > 20) {
+      values.custname = values.custname.substring(0, 20);
+    }
+    
+    if (values.address && values.address.length > 50) {
+      values.address = values.address.substring(0, 50);
+    }
+    
     const { data, error } = await supabase
       .from('customer')
       .update({
@@ -170,12 +188,9 @@ export async function restoreCustomer(customer: Customer) {
 export function getCustomerStatus(customer: Customer) {
   if (customer.deleted_at) return 'Deleted';
   
-  // Look at the activity logs to determine if this is restored
-  // Since we can't query activity logs directly here, we rely on the modified fields
   if (customer.modified_by !== null && customer.modified_at !== null) {
-    // Check activity logs table_name='customer' and action='restore'
-    // For now, we rely on checking the modified fields
-    const { action } = customer as any; // This would need to be provided from activity logs
+    // For restored customers
+    const { action } = customer as any; 
     if (action === 'restore') {
       return 'Restored';
     }

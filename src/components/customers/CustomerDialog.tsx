@@ -1,6 +1,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CustomerForm, CustomerFormValues } from "./CustomerForm";
+import { useEffect } from "react";
 
 interface CustomerDialogProps {
   open: boolean;
@@ -22,6 +23,17 @@ export function CustomerDialog({
     ...formDefaults,
     payterm: formDefaults.payterm || "COD", // Set default payment term if not provided
   };
+  
+  // Clean the input data to ensure it fits within database constraints
+  useEffect(() => {
+    if (open && defaultValues.custname && defaultValues.custname.length > 20) {
+      defaultValues.custname = defaultValues.custname.substring(0, 20);
+    }
+    
+    if (open && defaultValues.address && defaultValues.address.length > 50) {
+      defaultValues.address = defaultValues.address.substring(0, 50);
+    }
+  }, [open, defaultValues]);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
