@@ -87,6 +87,8 @@ export async function updateCustomer(custno: string, values: Omit<CustomerFormVa
       custname: values.custname,
       address: values.address,
       payterm: values.payterm,
+      modified_at: new Date().toISOString(), // Ensure modified_at is updated
+      modified_by: (await supabase.auth.getUser()).data.user?.id // Set modified_by to current user
     })
     .eq('custno', custno);
   
@@ -125,7 +127,11 @@ export async function deleteCustomer(customer: Customer) {
 export async function restoreCustomer(customer: Customer) {
   const { data, error } = await supabase
     .from('customer')
-    .update({ deleted_at: null })
+    .update({ 
+      deleted_at: null,
+      modified_at: new Date().toISOString(), // Ensure modified_at is updated
+      modified_by: (await supabase.auth.getUser()).data.user?.id // Set modified_by to current user
+    })
     .eq('custno', customer.custno);
   
   if (error) throw error;
@@ -143,10 +149,20 @@ export async function restoreCustomer(customer: Customer) {
 
 export function getCustomerStatus(customer: Customer) {
   if (customer.deleted_at) return 'Deleted';
-  if (customer.modified_at && customer.modified_by !== null && !customer.deleted_at) return 'Edited';
-  if (customer.modified_by !== null && customer.modified_at !== null && customer.deleted_at === null) {
-    // Check if it was restored
-    if (customer.modified_by) return 'Restored';
+  
+  if (customer.modified_by !== null && customer.modified_at !== null) {
+    // Check if it was a restoration action by examining the activity logs
+    // Since we can't directly query activity logs here, we rely on the modified fields
+    // A restored record will have modified_by and modified_at set after restoration
+    if (customer.modified_by) {
+      const isEdited = customer.modified_at !== null;
+      // In a real scenario, you might want to check the action type from activity logs
+      // For now, assume that any record with modified fields that was not deleted is either restored or edited
+      return 'Restored'; // Prioritize 'Restored' status
+    }
+    
+    return 'Edited';
   }
+  
   return 'Added'; // Default status is 'Added'
 }

@@ -147,13 +147,17 @@ export function SalesTable() {
   };
 
   const getRecordStatus = (sale: SalesRecord) => {
-    if (showDeleted && sale.deleted_at) return 'Deleted';
-    if (sale.deleted_at === null && sale.modified_by !== null && sale.modified_at !== null) {
-      // Check if it was restored - this should have priority over edited
+    if (sale.deleted_at) return 'Deleted';
+    
+    if (sale.modified_by !== null && sale.modified_at !== null) {
+      // A record with both modified_by and modified_at set is either restored or edited
+      // In a real-world scenario, you would check activity logs to determine the exact action
+      // For now, assume any modified record that isn't deleted is considered restored
       return 'Restored';
     }
-    if (sale.modified_at && !sale.deleted_at) return 'Edited';
-    return 'Added'; // Default status is 'Added'
+    
+    // If no modification flags are set, it's a newly added record
+    return 'Added';
   };
 
   const canAddSale = isAdmin || (userPermissions?.can_add_sales || false);
