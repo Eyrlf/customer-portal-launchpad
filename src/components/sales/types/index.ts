@@ -54,7 +54,7 @@ export interface Payment {
   transno: string | null;
 }
 
-// Add the SalesDetailItem interface
+// Updated SalesDetailItem interface to include id and deleted_at
 export interface SalesDetailItem {
   id: string;
   transno: string;

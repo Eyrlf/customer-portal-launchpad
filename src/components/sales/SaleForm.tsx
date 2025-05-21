@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SalesRecord, Customer } from "./types";
+import { SalesRecord, Customer, SalesDetailItem } from "./types";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -42,6 +42,7 @@ interface SaleFormProps {
   onCancel: () => void;
 }
 
+// Updated SaleItem to match the database structure
 interface SaleItem {
   id?: string;
   prodcode: string;
@@ -50,7 +51,7 @@ interface SaleItem {
   deleted_at?: string | null;
 }
 
-// Updated schema to include id and deleted_at fields
+// Updated form schema with proper fields
 const formSchema = z.object({
   transno: z.string().min(1, "Transaction number is required"),
   salesdate: z.date().nullable(),
@@ -217,7 +218,7 @@ export function SaleForm({
       
       if (activeDetails && activeDetails.length > 0) {
         const items = await Promise.all(
-          activeDetails.map(async (detail) => {
+          activeDetails.map(async (detail: SalesDetailItem) => {
             const { data: priceData } = await supabase
               .from('pricehist')
               .select('unitprice')
@@ -249,7 +250,7 @@ export function SaleForm({
       
       if (deletedDetails && deletedDetails.length > 0) {
         const items = await Promise.all(
-          deletedDetails.map(async (detail) => {
+          deletedDetails.map(async (detail: SalesDetailItem) => {
             const { data: priceData } = await supabase
               .from('pricehist')
               .select('unitprice')
