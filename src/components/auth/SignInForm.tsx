@@ -117,26 +117,6 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
           )}
         />
         
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <input
-              id="remember-me"
-              name="remember-me"
-              type="checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-            />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-600">
-              Remember me
-            </label>
-          </div>
-          
-          <div className="text-sm">
-            <a href="#" className="font-medium text-primary hover:text-primary/80">
-              Forgot your password?
-            </a>
-          </div>
-        </div>
-        
         <Button 
           type="submit" 
           className="w-full" 
@@ -144,26 +124,6 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
         >
           {isLoading ? "Signing in..." : "Sign in"}
         </Button>
-        
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-gray-50 px-2 text-gray-500">Or continue with</span>
-            </div>
-          </div>
-          
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Button variant="outline" type="button" className="w-full">
-              Google
-            </Button>
-            <Button variant="outline" type="button" className="w-full">
-              Microsoft
-            </Button>
-          </div>
-        </div>
       </form>
     </Form>
   );

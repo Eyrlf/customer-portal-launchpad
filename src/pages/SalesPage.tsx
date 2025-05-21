@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, ArrowDown, ArrowUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { SaleForm } from "@/components/sales/SaleForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -173,8 +173,12 @@ const SalesPage = () => {
                 <SelectValue placeholder="Sort Order" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="asc">Transaction No (A-Z)</SelectItem>
-                <SelectItem value="desc">Transaction No (Z-A)</SelectItem>
+                <SelectItem value="asc">
+                  Transaction No <ArrowUp className="inline-block ml-1 h-4 w-4" />
+                </SelectItem>
+                <SelectItem value="desc">
+                  Transaction No <ArrowDown className="inline-block ml-1 h-4 w-4" />
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

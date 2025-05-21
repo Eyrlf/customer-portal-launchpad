@@ -96,3 +96,8 @@ export interface Payment {
   paydate: string | null;
   amount: number | null;
 }
+
+// Add new utility interface for formatting dates
+export interface DateFormatOptions {
+  dateFormat: "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+}

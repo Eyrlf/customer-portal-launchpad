@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -120,6 +119,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           position: null
         } : undefined;
 
+        // When constructing the enhanced sale object, handle the deleted_by field properly
         const enhancedSale: SalesRecord = {
           ...sale,
           customer: customerData,
@@ -129,7 +129,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           payment_status: paymentStatus,
           created_at: sale.created_at || new Date().toISOString(),
           created_by: sale.created_by || null,
-          deleted_by: sale.deleted_by || null,
+          deleted_by: sale.deleted_by || null, // Make sure this field exists
           deleted_at: sale.deleted_at || null,
           modified_at: sale.modified_at || null,
           modified_by: sale.modified_by || null
@@ -308,7 +308,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
         .from('sales')
         .update({ 
           deleted_at: new Date().toISOString(),
-          deleted_by: (await supabase.auth.getUser()).data.user?.id
+          deleted_by: (await supabase.auth.getUser()).data.user?.id || null
         })
         .eq('transno', sale.transno);
       
