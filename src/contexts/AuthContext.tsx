@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface Profile {
   id: string;
@@ -10,13 +11,13 @@ interface Profile {
   role: 'admin' | 'customer';
 }
 
-interface User {
+interface AuthUser {
   id: string;
   email: string;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   profile: Profile | null;
   isAdmin: boolean;
   isAuthenticated: boolean;
@@ -29,7 +30,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,14 +38,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Setup auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user ?? null);
-        
         if (session?.user) {
+          const authUser: AuthUser = {
+            id: session.user.id,
+            email: session.user.email || '',
+          };
+          setUser(authUser);
+          
           // Use setTimeout to prevent deadlocks
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 0);
         } else {
+          setUser(null);
           setProfile(null);
         }
       }
@@ -52,9 +58,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      
       if (session?.user) {
+        const authUser: AuthUser = {
+          id: session.user.id,
+          email: session.user.email || '',
+        };
+        setUser(authUser);
         fetchUserProfile(session.user.id);
       }
       setIsLoading(false);

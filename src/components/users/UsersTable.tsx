@@ -1,6 +1,4 @@
-
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -88,7 +86,7 @@ export function UsersTable() {
               profile: {
                 first_name: profile.first_name,
                 last_name: profile.last_name,
-                role: profile.role,
+                role: profile.role as 'admin' | 'customer',
               },
             };
           }
@@ -99,7 +97,7 @@ export function UsersTable() {
             profile: {
               first_name: profile.first_name,
               last_name: profile.last_name,
-              role: profile.role,
+              role: profile.role as 'admin' | 'customer',
             },
           };
         })
