@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -53,7 +52,7 @@ interface SalesRecord {
       first_name?: string;
       last_name?: string;
     };
-  };
+  } | null; // Allow null for modifier to handle SelectQueryError cases
   total_amount?: number;
   payment_status?: 'Paid' | 'Partial' | 'Unpaid';
 }
@@ -168,16 +167,27 @@ export function SalesTable() {
           .select(`
             quantity,
             prodcode,
-            pricehist:prodcode(unitprice)
+            product:prodcode(*)
           `)
           .eq('transno', sale.transno);
 
         if (!detailsError && salesDetails && salesDetails.length > 0) {
-          // This is simplified - in reality you would need to get the price at the time of sale
-          const expectedTotal = salesDetails.reduce((sum, detail) => {
-            const unitPrice = detail.pricehist?.unitprice || 0;
-            return sum + (unitPrice * (detail.quantity || 0));
-          }, 0);
+          // Now we'll fetch the price history for each product
+          let expectedTotal = 0;
+          
+          for (const detail of salesDetails) {
+            const { data: priceData, error: priceError } = await supabase
+              .from('pricehist')
+              .select('unitprice')
+              .eq('prodcode', detail.prodcode)
+              .order('effdate', { ascending: false })
+              .limit(1);
+              
+            if (!priceError && priceData && priceData.length > 0) {
+              const unitPrice = priceData[0].unitprice || 0;
+              expectedTotal += (unitPrice * (detail.quantity || 0));
+            }
+          }
 
           if (totalAmount >= expectedTotal && expectedTotal > 0) {
             paymentStatus = 'Paid';
@@ -193,7 +203,7 @@ export function SalesTable() {
         };
       }));
       
-      setSales(salesWithTotals);
+      setSales(salesWithTotals as SalesRecord[]);
       
       // Fetch deleted sales if showing deleted
       if (showDeleted && isAdmin) {
@@ -208,7 +218,7 @@ export function SalesTable() {
           .not('deleted_at', 'is', null);
         
         if (deletedError) throw deletedError;
-        setDeletedSales(deletedSalesData || []);
+        setDeletedSales(deletedSalesData as SalesRecord[] || []);
       }
     } catch (error) {
       console.error('Error fetching sales:', error);
@@ -410,7 +420,7 @@ export function SalesTable() {
     if (!sale.modified_by || !sale.modified_at) return 'N/A';
     
     let name = 'Unknown User';
-    if (sale.modifier) {
+    if (sale.modifier && !('error' in sale.modifier)) {
       if (sale.modifier.user_metadata?.first_name || sale.modifier.user_metadata?.last_name) {
         name = `${sale.modifier.user_metadata.first_name || ''} ${sale.modifier.user_metadata.last_name || ''}`.trim();
       } else {
@@ -431,9 +441,9 @@ export function SalesTable() {
     
     switch (status) {
       case 'Paid':
-        return <Badge variant="success" className="bg-green-500">Paid</Badge>;
+        return <Badge className="bg-green-500 text-white">Paid</Badge>;
       case 'Partial':
-        return <Badge variant="warning" className="bg-yellow-500">Partial</Badge>;
+        return <Badge className="bg-yellow-500 text-white">Partial</Badge>;
       case 'Unpaid':
         return <Badge variant="destructive">Unpaid</Badge>;
       default:
