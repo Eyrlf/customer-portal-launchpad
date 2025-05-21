@@ -207,7 +207,7 @@ export async function restoreCustomer(customer: Customer) {
 }
 
 export function getCustomerStatus(customer: Customer) {
-  // If the customer has the restore action, prioritize showing "Restored" status
+  // Prioritize the 'restore' action flag above all else
   if (customer.action === 'restore') {
     return 'Restored';
   }
