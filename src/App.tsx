@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import UsersPage from "./pages/UsersPage";
 import CustomersPage from "./pages/CustomersPage";
 import SalesPage from "./pages/SalesPage";
+import CustomerDetailsPage from "./pages/CustomerDetailsPage";
 import ActivityLogsPage from "./pages/ActivityLogsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/users" element={<UsersPage />} />
             <Route path="/dashboard/customers" element={<CustomersPage />} />
+            <Route path="/dashboard/customers/:custno" element={<CustomerDetailsPage />} />
             <Route path="/dashboard/sales" element={<SalesPage />} />
             <Route path="/dashboard/activity-logs" element={<ActivityLogsPage />} />
             <Route path="/dashboard/notifications" element={<NotificationsPage />} />

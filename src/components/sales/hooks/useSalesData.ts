@@ -15,22 +15,42 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
   const fetchSales = async () => {
     setLoading(true);
     try {
-      // Fetch active sales with total amount and payment info
+      // Fetch active sales with customer and employee info
       const { data: activeSales, error: activeError } = await supabase
         .from('sales')
         .select(`
           *,
           customer:custno(custname),
-          employee:empno(firstname, lastname),
-          modifier:modified_by(email, user_metadata)
+          employee:empno(firstname, lastname)
         `)
         .is('deleted_at', null);
       
       if (activeError) throw activeError;
 
-      // For each sale, fetch the total amount from payments
-      const salesWithTotals = await Promise.all((activeSales || []).map(async (sale) => {
-        // Get payments for this sale
+      // For each sale, fetch the modifier (user) data separately
+      const salesWithModifiers = await Promise.all((activeSales || []).map(async (sale) => {
+        let modifierData = null;
+        
+        if (sale.modified_by) {
+          // Fetch the user data from the profiles table instead
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', sale.modified_by)
+            .single();
+          
+          if (!userError && userData) {
+            modifierData = {
+              email: userData.id, // Use ID as email placeholder since we can't access auth.users
+              user_metadata: {
+                first_name: userData.first_name,
+                last_name: userData.last_name
+              }
+            };
+          }
+        }
+
+        // For each sale, fetch the total amount from payments
         const { data: payments, error: paymentsError } = await supabase
           .from('payment')
           .select('amount')
@@ -40,6 +60,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           console.error('Error fetching payments:', paymentsError);
           return {
             ...sale,
+            modifier: modifierData,
             total_amount: 0,
             payment_status: 'Unpaid' as const
           };
@@ -88,13 +109,13 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
 
         return {
           ...sale,
+          modifier: modifierData,
           total_amount: totalAmount,
           payment_status: paymentStatus
         };
       }));
       
-      // Use proper type assertion with unknown as intermediate step
-      setSales(salesWithTotals as unknown as SalesRecord[]);
+      setSales(salesWithModifiers as SalesRecord[]);
       
       // Fetch deleted sales if showing deleted
       if (showDeleted && isAdmin) {
@@ -103,13 +124,41 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           .select(`
             *,
             customer:custno(custname),
-            employee:empno(firstname, lastname),
-            modifier:modified_by(email, user_metadata)
+            employee:empno(firstname, lastname)
           `)
           .not('deleted_at', 'is', null);
         
         if (deletedError) throw deletedError;
-        setDeletedSales(deletedSalesData as unknown as SalesRecord[] || []);
+        
+        // Also add modifier and totals to deleted sales
+        const deletedSalesWithModifiers = await Promise.all((deletedSalesData || []).map(async (sale) => {
+          let modifierData = null;
+          
+          if (sale.modified_by) {
+            const { data: userData, error: userError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', sale.modified_by)
+              .single();
+            
+            if (!userError && userData) {
+              modifierData = {
+                email: userData.id,
+                user_metadata: {
+                  first_name: userData.first_name,
+                  last_name: userData.last_name
+                }
+              };
+            }
+          }
+          
+          return {
+            ...sale,
+            modifier: modifierData
+          };
+        }));
+        
+        setDeletedSales(deletedSalesWithModifiers as SalesRecord[]);
       }
     } catch (error) {
       console.error('Error fetching sales:', error);
