@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,7 +51,7 @@ interface SaleItem {
   deleted_at?: string | null;
 }
 
-// Updated form schema with proper fields including deleted_at
+// Updated form schema to include id and deleted_at fields
 const formSchema = z.object({
   transno: z.string().min(1, "Transaction number is required"),
   salesdate: z.date().nullable(),
@@ -288,7 +287,7 @@ export function SaleForm({
     }
   };
 
-  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleSubmit = async (values: FormValues) => {
     try {
       // Prevent double submission
       if (isSubmitting) return;
@@ -486,7 +485,6 @@ export function SaleForm({
     const newFormItem = { 
       prodcode: "", 
       quantity: 1, 
-      id: undefined, 
       deleted_at: null 
     };
     form.setValue('items', [...currentItems, newFormItem]);
