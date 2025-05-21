@@ -159,7 +159,8 @@ export async function deleteCustomer(customer: Customer) {
 
 export async function restoreCustomer(customer: Customer) {
   try {
-    const { data, error } = await supabase
+    // Fixed: Explicitly sent only the fields we want to update
+    const { error } = await supabase
       .from('customer')
       .update({ 
         deleted_at: null,
@@ -168,7 +169,10 @@ export async function restoreCustomer(customer: Customer) {
       })
       .eq('custno', customer.custno);
     
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase error in restoreCustomer:", error);
+      throw error;
+    }
     
     // Log activity
     await supabase.rpc('log_activity', {
@@ -178,7 +182,7 @@ export async function restoreCustomer(customer: Customer) {
       details: JSON.stringify(customer),
     });
     
-    return data;
+    return { success: true };
   } catch (error) {
     console.error("Error in restoreCustomer:", error);
     throw error;

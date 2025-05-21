@@ -43,7 +43,15 @@ const SettingsPage = () => {
       const savedSettings = localStorage.getItem(`user_settings_${user.id}`);
       if (savedSettings) {
         try {
-          setSettings(JSON.parse(savedSettings));
+          const parsedSettings = JSON.parse(savedSettings);
+          setSettings(parsedSettings);
+          
+          // Apply dark mode on initial load if it was saved as enabled
+          if (parsedSettings.darkMode) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
         } catch (e) {
           console.error("Failed to parse settings:", e);
         }
@@ -96,7 +104,7 @@ const SettingsPage = () => {
           <Card className="mb-6">
             <CardContent className="pt-6">
               <h2 className="text-xl font-semibold mb-2">Appearance</h2>
-              <p className="text-gray-500 mb-6">Customize the look and feel of the application.</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">Customize the look and feel of the application.</p>
               
               <div className="space-y-6">
                 <div>
@@ -135,6 +143,7 @@ const SettingsPage = () => {
                 <Button 
                   onClick={handleSaveSettings} 
                   disabled={isSaving}
+                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
                 >
                   <Save className="mr-2 h-4 w-4" />
                   Save changes
