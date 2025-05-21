@@ -150,10 +150,9 @@ export function SalesTable() {
     if (sale.deleted_at) return 'Deleted';
     
     if (sale.modified_by !== null && sale.modified_at !== null) {
-      // A record with both modified_by and modified_at set is either restored or edited
-      // In a real-world scenario, you would check activity logs to determine the exact action
-      // For now, assume any modified record that isn't deleted is considered restored
-      return 'Restored';
+      // In a real implementation, we would check activity logs
+      // For now, if it has been modified, we'll consider it edited
+      return 'Edited';
     }
     
     // If no modification flags are set, it's a newly added record

@@ -238,6 +238,8 @@ export function SaleForm({
           .update({
             salesdate: values.salesdate?.toISOString(),
             custno: values.custno,
+            modified_at: new Date().toISOString(),
+            modified_by: (await supabase.auth.getUser()).data.user?.id
           })
           .eq('transno', selectedSale.transno);
         
@@ -279,7 +281,9 @@ export function SaleForm({
           details: JSON.stringify({...values, total_amount: totalAmount}),
         });
       } else {
-        // Create new sale
+        // Create new sale - make sure we're setting the necessary fields
+        console.log("Creating new sale with values:", values);
+        
         const { error } = await supabase
           .from('sales')
           .insert({
@@ -289,6 +293,7 @@ export function SaleForm({
           });
         
         if (error) {
+          console.error("Error creating sale:", error);
           if (error.code === '23505') {
             toast({
               title: "Error",
@@ -299,6 +304,8 @@ export function SaleForm({
           }
           throw error;
         }
+        
+        console.log("Sale created successfully, inserting details for:", saleItems.length, "items");
         
         // Insert sale details
         if (saleItems.length > 0) {
@@ -312,7 +319,10 @@ export function SaleForm({
               }))
             );
           
-          if (insertError) throw insertError;
+          if (insertError) {
+            console.error("Error inserting sale details:", insertError);
+            throw insertError;
+          }
         }
         
         toast({

@@ -58,109 +58,127 @@ export async function generateNewCustomerNumber() {
 }
 
 export async function createCustomer(values: CustomerFormValues) {
-  const { data, error } = await supabase
-    .from('customer')
-    .insert({
-      custno: values.custno,
-      custname: values.custname,
-      address: values.address,
-      payterm: values.payterm,
+  try {
+    const { data, error } = await supabase
+      .from('customer')
+      .insert({
+        custno: values.custno,
+        custname: values.custname,
+        address: values.address,
+        payterm: values.payterm || 'COD', // Ensure payterm has a default value
+      });
+    
+    if (error) throw error;
+    
+    // Log activity
+    await supabase.rpc('log_activity', {
+      action: 'insert',
+      table_name: 'customer',
+      record_id: values.custno,
+      details: JSON.stringify(values),
     });
-  
-  if (error) throw error;
-  
-  // Log activity
-  await supabase.rpc('log_activity', {
-    action: 'insert',
-    table_name: 'customer',
-    record_id: values.custno,
-    details: JSON.stringify(values),
-  });
-  
-  return data;
+    
+    return data;
+  } catch (error) {
+    console.error("Error in createCustomer:", error);
+    throw error;
+  }
 }
 
 export async function updateCustomer(custno: string, values: Omit<CustomerFormValues, 'custno'>) {
-  const { data, error } = await supabase
-    .from('customer')
-    .update({
-      custname: values.custname,
-      address: values.address,
-      payterm: values.payterm,
-      modified_at: new Date().toISOString(), // Ensure modified_at is updated
-      modified_by: (await supabase.auth.getUser()).data.user?.id // Set modified_by to current user
-    })
-    .eq('custno', custno);
-  
-  if (error) throw error;
-  
-  // Log activity
-  await supabase.rpc('log_activity', {
-    action: 'update',
-    table_name: 'customer',
-    record_id: custno,
-    details: JSON.stringify({ custno, ...values }),
-  });
-  
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('customer')
+      .update({
+        custname: values.custname,
+        address: values.address,
+        payterm: values.payterm || 'COD',
+        modified_at: new Date().toISOString(),
+        modified_by: (await supabase.auth.getUser()).data.user?.id
+      })
+      .eq('custno', custno);
+    
+    if (error) throw error;
+    
+    // Log activity
+    await supabase.rpc('log_activity', {
+      action: 'update',
+      table_name: 'customer',
+      record_id: custno,
+      details: JSON.stringify({ custno, ...values }),
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("Error in updateCustomer:", error);
+    throw error;
+  }
 }
 
 export async function deleteCustomer(customer: Customer) {
-  const { data, error } = await supabase
-    .from('customer')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('custno', customer.custno);
-  
-  if (error) throw error;
-  
-  // Log activity
-  await supabase.rpc('log_activity', {
-    action: 'delete',
-    table_name: 'customer',
-    record_id: customer.custno,
-    details: JSON.stringify(customer),
-  });
-  
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('customer')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('custno', customer.custno);
+    
+    if (error) throw error;
+    
+    // Log activity
+    await supabase.rpc('log_activity', {
+      action: 'delete',
+      table_name: 'customer',
+      record_id: customer.custno,
+      details: JSON.stringify(customer),
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("Error in deleteCustomer:", error);
+    throw error;
+  }
 }
 
 export async function restoreCustomer(customer: Customer) {
-  const { data, error } = await supabase
-    .from('customer')
-    .update({ 
-      deleted_at: null,
-      modified_at: new Date().toISOString(), // Ensure modified_at is updated
-      modified_by: (await supabase.auth.getUser()).data.user?.id // Set modified_by to current user
-    })
-    .eq('custno', customer.custno);
-  
-  if (error) throw error;
-  
-  // Log activity
-  await supabase.rpc('log_activity', {
-    action: 'restore',
-    table_name: 'customer',
-    record_id: customer.custno,
-    details: JSON.stringify(customer),
-  });
-  
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('customer')
+      .update({ 
+        deleted_at: null,
+        modified_at: new Date().toISOString(),
+        modified_by: (await supabase.auth.getUser()).data.user?.id
+      })
+      .eq('custno', customer.custno);
+    
+    if (error) throw error;
+    
+    // Log activity
+    await supabase.rpc('log_activity', {
+      action: 'restore',
+      table_name: 'customer',
+      record_id: customer.custno,
+      details: JSON.stringify(customer),
+    });
+    
+    return data;
+  } catch (error) {
+    console.error("Error in restoreCustomer:", error);
+    throw error;
+  }
 }
 
 export function getCustomerStatus(customer: Customer) {
   if (customer.deleted_at) return 'Deleted';
   
+  // Look at the activity logs to determine if this is restored
+  // Since we can't query activity logs directly here, we rely on the modified fields
   if (customer.modified_by !== null && customer.modified_at !== null) {
-    // Check if it was a restoration action by examining the activity logs
-    // Since we can't directly query activity logs here, we rely on the modified fields
-    // A restored record will have modified_by and modified_at set after restoration
-    if (customer.modified_by) {
-      const isEdited = customer.modified_at !== null;
-      // In a real scenario, you might want to check the action type from activity logs
-      // For now, assume that any record with modified fields that was not deleted is either restored or edited
-      return 'Restored'; // Prioritize 'Restored' status
+    // Check activity logs table_name='customer' and action='restore'
+    // For now, we rely on checking the modified fields
+    const { action } = customer as any; // This would need to be provided from activity logs
+    if (action === 'restore') {
+      return 'Restored';
     }
-    
     return 'Edited';
   }
   

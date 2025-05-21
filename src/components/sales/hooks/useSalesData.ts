@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -265,6 +264,21 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
     }
   };
 
+  const getRecordStatus = (sale: SalesRecord) => {
+    if (sale.deleted_at) return 'Deleted';
+    
+    if (sale.modified_by !== null && sale.modified_at !== null) {
+      // Check action from activity logs to determine if this was a restore or edit
+      // Since we can't directly query activity logs here, we make an assumption
+      // A real implementation would check the action column in activity_logs
+      // For now, we use a simplified check - if it was modified after creation, it's edited
+      return 'Edited';
+    }
+    
+    // If no modification flags are set, it's a newly added record
+    return 'Added';
+  };
+
   useEffect(() => {
     fetchSales();
     fetchCustomers();
@@ -279,6 +293,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
     loading,
     fetchSales,
     handleDelete,
-    handleRestore
+    handleRestore,
+    getRecordStatus
   };
 }
