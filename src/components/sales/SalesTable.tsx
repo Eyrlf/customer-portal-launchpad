@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -26,9 +25,10 @@ import { Link, useNavigate } from "react-router-dom";
 interface SalesTableProps {
   statusFilter?: string;
   searchQuery?: string;
+  sortOrder?: "asc" | "desc";
 }
 
-export function SalesTable({ statusFilter = "all", searchQuery = "" }: SalesTableProps) {
+export function SalesTable({ statusFilter = "all", searchQuery = "", sortOrder = "desc" }: SalesTableProps) {
   const [showDeleted, setShowDeleted] = useState(false);
   const [selectedSale, setSelectedSale] = useState<SalesRecord | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -71,20 +71,42 @@ export function SalesTable({ statusFilter = "all", searchQuery = "" }: SalesTabl
       );
     }
     
+    // Sort by transaction number
+    filtered.sort((a, b) => {
+      if (sortOrder === "asc") {
+        return a.transno.localeCompare(b.transno);
+      } else {
+        return b.transno.localeCompare(a.transno);
+      }
+    });
+    
     return filtered;
-  }, [allSales, statusFilter, searchQuery]);
+  }, [allSales, statusFilter, searchQuery, sortOrder]);
 
   // Filter deleted sales based on search query
   const filteredDeletedSales = useMemo(() => {
-    if (!searchQuery) return allDeletedSales;
+    let filtered = [...allDeletedSales];
     
-    const query = searchQuery.toLowerCase();
-    return allDeletedSales.filter(sale => 
-      sale.transno.toLowerCase().includes(query) || 
-      sale.customer?.custname?.toLowerCase().includes(query) ||
-      (sale.total_amount?.toString().includes(query))
-    );
-  }, [allDeletedSales, searchQuery]);
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(sale => 
+        sale.transno.toLowerCase().includes(query) || 
+        sale.customer?.custname?.toLowerCase().includes(query) ||
+        (sale.total_amount?.toString().includes(query))
+      );
+    }
+    
+    // Sort by transaction number
+    filtered.sort((a, b) => {
+      if (sortOrder === "asc") {
+        return a.transno.localeCompare(b.transno);
+      } else {
+        return b.transno.localeCompare(a.transno);
+      }
+    });
+    
+    return filtered;
+  }, [allDeletedSales, searchQuery, sortOrder]);
 
   useEffect(() => {
     if (user && !isAdmin) {
@@ -128,17 +150,9 @@ export function SalesTable({ statusFilter = "all", searchQuery = "" }: SalesTabl
         setUserPermissions({
           id: "",
           user_id: user.id,
-          can_add_sales: false,
-          can_edit_sales: false,
-          can_delete_sales: false,
-          can_add_customers: false,
-          can_edit_customers: false,
-          can_delete_customers: false,
           can_add_salesdetails: false,
           can_edit_salesdetails: false,
-          can_delete_salesdetails: false,
-          created_at: "",
-          updated_at: ""
+          can_delete_salesdetails: false
         });
         return;
       }

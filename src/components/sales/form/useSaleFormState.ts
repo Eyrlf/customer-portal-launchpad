@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -90,14 +91,14 @@ export function useSaleFormState(
 
   const fetchProducts = async () => {
     try {
-      // Get all products with their latest prices
+      // Get all products with their latest prices from pricehist
       const { data: productsData, error: productsError } = await supabase
         .from('product')
         .select('*');
       
       if (productsError) throw productsError;
       
-      // For each product, get the latest price
+      // For each product, get the latest price from pricehist
       const productsWithPrices = await Promise.all(
         productsData.map(async (product) => {
           const { data: priceData, error: priceError } = await supabase
@@ -115,9 +116,11 @@ export function useSaleFormState(
             };
           }
           
+          const unitprice = priceData && priceData.length > 0 ? priceData[0].unitprice : 0;
+          
           return {
             ...product,
-            unitprice: priceData && priceData.length > 0 ? priceData[0].unitprice : 0,
+            unitprice,
           };
         })
       );
@@ -138,7 +141,14 @@ export function useSaleFormState(
       // First get active items
       const { data: activeDetails, error: activeError } = await supabase
         .from('salesdetail')
-        .select('*')
+        .select(`
+          id,
+          transno,
+          prodcode, 
+          quantity,
+          deleted_at,
+          deleted_by
+        `)
         .eq('transno', transno)
         .is('deleted_at', null);
       
@@ -147,7 +157,14 @@ export function useSaleFormState(
       // Then get deleted items
       const { data: deletedDetails, error: deletedError } = await supabase
         .from('salesdetail')
-        .select('*')
+        .select(`
+          id,
+          transno,
+          prodcode, 
+          quantity,
+          deleted_at,
+          deleted_by
+        `)
         .eq('transno', transno)
         .not('deleted_at', 'is', null);
         
@@ -156,6 +173,7 @@ export function useSaleFormState(
       if (activeDetails && activeDetails.length > 0) {
         const items = await Promise.all(
           activeDetails.map(async (detail: SalesDetailFromDB) => {
+            // Get the latest price for this product
             const { data: priceData } = await supabase
               .from('pricehist')
               .select('unitprice')
@@ -190,6 +208,7 @@ export function useSaleFormState(
       if (deletedDetails && deletedDetails.length > 0) {
         const items = await Promise.all(
           deletedDetails.map(async (detail: SalesDetailFromDB) => {
+            // Get the latest price for this product
             const { data: priceData } = await supabase
               .from('pricehist')
               .select('unitprice')

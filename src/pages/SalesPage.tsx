@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { SaleForm } from "@/components/sales/SaleForm";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,8 +24,10 @@ const SalesPage = () => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [userPermissions, setUserPermissions] = useState<any>(null);
+  const [customers, setCustomers] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -42,6 +44,9 @@ const SalesPage = () => {
         can_add_sales: true,
       });
     }
+
+    // Fetch customers for the form
+    fetchCustomers();
   }, [isAdmin, user]);
 
   const fetchUserPermissions = async () => {
@@ -70,6 +75,34 @@ const SalesPage = () => {
       }
     } catch (error) {
       console.error('Error in fetchUserPermissions:', error);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customer')
+        .select('custno, custname, address, payterm')
+        .is('deleted_at', null);
+      
+      if (error) {
+        console.error('Error fetching customers:', error);
+        return;
+      }
+      
+      // Format customers for the form
+      const formattedCustomers = data.map(customer => ({
+        custno: customer.custno,
+        custname: customer.custname,
+        address: customer.address || null,
+        city: null,
+        phone: null,
+        payterm: customer.payterm || null
+      }));
+      
+      setCustomers(formattedCustomers);
+    } catch (error) {
+      console.error('Error in fetchCustomers:', error);
     }
   };
 
@@ -132,9 +165,21 @@ const SalesPage = () => {
                 <SelectItem value="restored">Restored</SelectItem>
               </SelectContent>
             </Select>
+            <Select 
+              value={sortOrder} 
+              onValueChange={(value: "asc" | "desc") => setSortOrder(value)}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Sort Order" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="asc">Transaction No (A-Z)</SelectItem>
+                <SelectItem value="desc">Transaction No (Z-A)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
-          <SalesTable statusFilter={statusFilter} searchQuery={searchQuery} />
+          <SalesTable statusFilter={statusFilter} searchQuery={searchQuery} sortOrder={sortOrder} />
         </div>
       </ScrollArea>
 
@@ -142,12 +187,15 @@ const SalesPage = () => {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Add New Sale</DialogTitle>
+            <DialogDescription>
+              Create a new sales transaction. Add customer and product information below.
+            </DialogDescription>
           </DialogHeader>
           
           <SaleForm
             selectedSale={null}
             isEditing={false}
-            customers={[]}
+            customers={customers}
             onSubmitSuccess={handleFormSuccess}
             onCancel={() => setDialogOpen(false)}
           />

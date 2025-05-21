@@ -86,6 +86,8 @@ export interface SaleItem {
   prodcode: string;
   quantity: number;
   unitprice: number;
+  id?: string;
+  deleted_at?: string | null;
 }
 
 export interface Payment {

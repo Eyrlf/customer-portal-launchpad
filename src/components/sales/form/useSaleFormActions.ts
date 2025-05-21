@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,6 +80,38 @@ export function useSaleFormActions({
           console.error("Error updating sale:", error);
           throw error;
         }
+
+        // Update or insert sale details for editing
+        for (const item of saleItems) {
+          if (item.id) {
+            // Update existing sale detail
+            const { error: updateError } = await supabase
+              .from('salesdetail')
+              .update({
+                quantity: item.quantity
+              })
+              .eq('id', item.id);
+            
+            if (updateError) {
+              console.error("Error updating sale detail:", updateError);
+              throw updateError;
+            }
+          } else {
+            // Insert new sale detail for existing sale
+            const { error: insertError } = await supabase
+              .from('salesdetail')
+              .insert({
+                transno: selectedSale.transno,
+                prodcode: item.prodcode,
+                quantity: item.quantity
+              });
+            
+            if (insertError) {
+              console.error("Error inserting new sale detail:", insertError);
+              throw insertError;
+            }
+          }
+        }
         
         toast({
           title: "Sale Updated",
@@ -120,12 +151,14 @@ export function useSaleFormActions({
           return;
         }
         
+        // Insert into sales table
         const { error } = await supabase
           .from('sales')
           .insert({
             transno: values.transno,
             salesdate: values.salesdate?.toISOString(),
             custno: values.custno,
+            created_by: (await supabase.auth.getUser()).data.user?.id
           });
         
         if (error) {
@@ -140,6 +173,22 @@ export function useSaleFormActions({
             return;
           }
           throw error;
+        }
+        
+        // Insert sale details for each item
+        for (const item of saleItems) {
+          const { error: detailError } = await supabase
+            .from('salesdetail')
+            .insert({
+              transno: values.transno,
+              prodcode: item.prodcode,
+              quantity: item.quantity
+            });
+          
+          if (detailError) {
+            console.error("Error inserting sale detail:", detailError);
+            // Continue with other items even if one fails
+          }
         }
         
         console.log("Sale created successfully");
@@ -182,6 +231,7 @@ export function useSaleFormActions({
       return;
     }
     
+    // Default new item with empty product code and quantity of 1
     const newItem = { prodcode: "", quantity: 1, unitprice: 0 };
     const updatedItems = [...saleItems, newItem];
     setSaleItems(updatedItems);
@@ -264,12 +314,36 @@ export function useSaleFormActions({
   const handleProductChange = (index: number, prodcode: string) => {
     const updatedItems = [...saleItems];
     const product = updatedItems[index] || { quantity: 1, unitprice: 0 };
-    updatedItems[index] = { 
-      ...product, 
-      prodcode 
+    
+    // Get the product price from pricehist
+    const getProductPrice = async (prodcode: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('pricehist')
+          .select('unitprice')
+          .eq('prodcode', prodcode)
+          .order('effdate', { ascending: false })
+          .limit(1);
+        
+        if (error) throw error;
+        
+        return data && data.length > 0 ? data[0].unitprice : 0;
+      } catch (error) {
+        console.error("Error getting product price:", error);
+        return 0;
+      }
     };
-    setSaleItems(updatedItems);
-    calculateTotal(updatedItems);
+    
+    // Update product code and fetch price
+    getProductPrice(prodcode).then(price => {
+      updatedItems[index] = { 
+        ...product, 
+        prodcode,
+        unitprice: price
+      };
+      setSaleItems(updatedItems);
+      calculateTotal(updatedItems);
+    });
     
     // Update form value
     const formItems = form.getValues('items');

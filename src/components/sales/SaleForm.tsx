@@ -50,6 +50,7 @@ export function SaleForm({
     calculateTotal,
     editingItemIndex,
     setEditingItemIndex,
+    getProductPrice,
   } = useSaleFormState(selectedSale, isEditing, onSubmitSuccess);
   
   // Initialize form actions using our custom hook
@@ -120,7 +121,17 @@ export function SaleForm({
               onEditProduct={handleEditProduct}
               onRemoveProduct={handleRemoveProduct}
               onRestoreProduct={handleRestoreItem}
-              onProductChange={handleProductChange}
+              onProductChange={(index, prodcode) => {
+                handleProductChange(index, prodcode);
+                // Update unitprice when product changes
+                const price = getProductPrice(prodcode);
+                const updatedItems = [...saleItems];
+                if (updatedItems[index]) {
+                  updatedItems[index].unitprice = price;
+                  setSaleItems(updatedItems);
+                  calculateTotal(updatedItems);
+                }
+              }}
               onQuantityChange={handleQuantityChange}
             />
             
