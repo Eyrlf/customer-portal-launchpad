@@ -1,14 +1,15 @@
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Save } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Save, Upload, Trash } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,6 +29,9 @@ const ProfilePage = () => {
     email: "",
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -42,6 +46,11 @@ const ProfilePage = () => {
         last_name: profile.last_name || "",
         email: user.email || "",
       });
+      
+      // Set avatar URL if available
+      if (profile.avatar_url) {
+        setAvatarUrl(profile.avatar_url);
+      }
     }
   }, [profile, user]);
 
@@ -88,6 +97,101 @@ const ProfilePage = () => {
     }
   };
 
+  const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      
+      if (!e.target.files || e.target.files.length === 0) {
+        return;
+      }
+      
+      const file = e.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user?.id}/avatar.${fileExt}`;
+      
+      // Upload file to supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data: urlData } = await supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      
+      // Update profile with avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: urlData.publicUrl })
+        .eq('id', user?.id);
+      
+      if (updateError) throw updateError;
+      
+      setAvatarUrl(urlData.publicUrl);
+      await refreshProfile();
+      
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated successfully.",
+      });
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your profile picture.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const deleteAvatar = async () => {
+    if (!user || !profile?.avatar_url) return;
+    
+    try {
+      setUploading(true);
+      
+      // Extract the file path from the URL
+      const urlParts = profile.avatar_url.split('/');
+      const filePath = `${user.id}/avatar.${urlParts[urlParts.length - 1].split('.').pop()}`;
+      
+      // Delete the file from storage
+      const { error: deleteError } = await supabase.storage
+        .from('avatars')
+        .remove([filePath]);
+      
+      if (deleteError) throw deleteError;
+      
+      // Update profile to remove avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', user.id);
+      
+      if (updateError) throw updateError;
+      
+      setAvatarUrl(null);
+      await refreshProfile();
+      
+      toast({
+        title: "Avatar removed",
+        description: "Your profile picture has been removed successfully.",
+      });
+    } catch (error) {
+      console.error("Error deleting avatar:", error);
+      toast({
+        title: "Removal failed",
+        description: "There was an error removing your profile picture.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -100,6 +204,12 @@ const ProfilePage = () => {
     return null;
   }
 
+  const getInitials = () => {
+    const first = formData.first_name?.charAt(0) || '';
+    const last = formData.last_name?.charAt(0) || '';
+    return (first + last).toUpperCase();
+  };
+
   return (
     <DashboardLayout>
       <ScrollArea className="h-[calc(100vh-80px)]">
@@ -108,6 +218,50 @@ const ProfilePage = () => {
           
           <Card className="mb-6">
             <CardContent className="pt-6">
+              <div className="flex flex-col items-center mb-6">
+                <Avatar className="h-24 w-24 mb-4">
+                  {avatarUrl ? (
+                    <AvatarImage src={avatarUrl} alt="Profile" />
+                  ) : (
+                    <AvatarFallback className="text-lg bg-primary text-primary-foreground">
+                      {getInitials()}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {avatarUrl ? 'Change Photo' : 'Upload Photo'}
+                  </Button>
+                  
+                  {avatarUrl && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={deleteAvatar}
+                      disabled={uploading}
+                    >
+                      <Trash className="mr-2 h-4 w-4" />
+                      Remove Photo
+                    </Button>
+                  )}
+                  
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={uploadAvatar}
+                    disabled={uploading}
+                  />
+                </div>
+              </div>
+              
               <div className="grid gap-6">
                 <div>
                   <Label htmlFor="email">Email</Label>
@@ -118,7 +272,7 @@ const ProfilePage = () => {
                     disabled
                     className="mt-1"
                   />
-                  <p className="text-sm text-gray-500 mt-1">Email cannot be changed</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Email cannot be changed</p>
                 </div>
                 
                 <div>
@@ -147,6 +301,7 @@ const ProfilePage = () => {
                   <Button 
                     onClick={handleSaveProfile} 
                     disabled={isSaving}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     <Save className="mr-2 h-4 w-4" />
                     Save profile

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CustomerFormValues } from "./CustomerForm";
 
@@ -158,7 +157,7 @@ export async function deleteCustomer(customer: Customer) {
 export async function restoreCustomer(customer: Customer) {
   try {
     // Check if customer exists
-    const { data: checkCustomer, error: checkError } = await supabase
+    const { data: existingCustomer, error: checkError } = await supabase
       .from('customer')
       .select('custno')
       .eq('custno', customer.custno)
@@ -169,20 +168,18 @@ export async function restoreCustomer(customer: Customer) {
       throw new Error("Customer not found");
     }
     
-    // Simple, focused update with only necessary fields
+    // Perform the restore operation with only the essential field
     const { error } = await supabase
       .from('customer')
-      .update({ 
-        deleted_at: null 
-      })
+      .update({ deleted_at: null })
       .eq('custno', customer.custno);
     
     if (error) {
-      console.error("Supabase error in restoreCustomer:", error);
+      console.error("Error restoring customer:", error);
       throw error;
     }
     
-    // Log activity for the restore operation
+    // Log activity
     await supabase.rpc('log_activity', {
       action: 'restore',
       table_name: 'customer',
@@ -190,13 +187,14 @@ export async function restoreCustomer(customer: Customer) {
       details: JSON.stringify(customer),
     });
     
-    // Manual update of the in-memory customer object to reflect changes
-    const updatedCustomer = {
-      ...customer,
-      deleted_at: null
+    // Return updated customer
+    return {
+      success: true,
+      customer: {
+        ...customer,
+        deleted_at: null
+      }
     };
-    
-    return { success: true, customer: updatedCustomer };
   } catch (error) {
     console.error("Error in restoreCustomer:", error);
     throw error;

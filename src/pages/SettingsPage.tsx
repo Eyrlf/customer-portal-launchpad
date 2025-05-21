@@ -143,7 +143,7 @@ const SettingsPage = () => {
                 <Button 
                   onClick={handleSaveSettings} 
                   disabled={isSaving}
-                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
                   <Save className="mr-2 h-4 w-4" />
                   Save changes
