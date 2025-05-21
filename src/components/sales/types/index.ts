@@ -6,7 +6,6 @@ export interface SalesDetailItem {
   unitprice: number;
 }
 
-// Updated SalesDetailFromDB interface to include deleted_at and deleted_by fields
 export interface SalesDetailFromDB {
   id?: string;
   transno: string;
@@ -18,7 +17,6 @@ export interface SalesDetailFromDB {
   unitprice?: number;
 }
 
-// Updated UserPermission interface to include salesdetails permissions
 export interface UserPermission {
   id: string;
   user_id: string;
@@ -35,19 +33,15 @@ export interface UserPermission {
   updated_at: string;
 }
 
-// Updated Customer interface to better match the DB schema
-// Making fields that might be missing in some scenarios optional
 export interface Customer {
   custno: string;
   custname: string | null;
   address: string | null;
-  // The following properties may not exist in the DB but are needed for TypeScript
   city: string | null;
   phone: string | null;
   payterm?: string | null;
 }
 
-// Updated SalesRecord to accommodate the actual data structure from DB
 export interface SalesRecord {
   transno: string;
   salesdate: string | null;
@@ -73,7 +67,6 @@ export interface SalesRecord {
   } | null;
 }
 
-// Updated Employee interface
 export interface Employee {
   empno: string;
   empname?: string | null;

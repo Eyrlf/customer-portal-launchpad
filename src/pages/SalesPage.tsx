@@ -95,18 +95,18 @@ const SalesPage = () => {
     <DashboardLayout>
       <ScrollArea className="h-[calc(100vh-80px)]">
         <div className="p-6">
-          <div className="mb-6 flex justify-between items-center">
+          <div className="mb-6 flex flex-col space-y-4 lg:flex-row lg:space-y-0 lg:items-center lg:justify-between">
             <h1 className="text-3xl font-bold">Sales</h1>
-            <div className="flex space-x-4">
+            <div className="flex items-center space-x-4">
               {canAddSale && (
-                <Button onClick={() => setDialogOpen(true)} className="bg-gray-900 hover:bg-gray-800">
+                <Button onClick={() => setDialogOpen(true)} className="bg-blue-500 hover:bg-blue-600">
                   <Plus size={20} className="mr-2" /> Add Sale
                 </Button>
               )}
             </div>
           </div>
           
-          <div className="mb-4 flex flex-wrap gap-4">
+          <div className="mb-4 flex flex-wrap gap-4 items-center">
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />

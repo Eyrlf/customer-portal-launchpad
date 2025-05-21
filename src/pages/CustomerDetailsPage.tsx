@@ -58,7 +58,7 @@ const CustomerDetailsPage = () => {
           custname: customerData.custname,
           address: customerData.address,
           city: null, // Add null as default if not in database
-          phone: customerData.phone || null,
+          phone: null, // Add null as default if not in database
           payterm: customerData.payterm
         };
         
@@ -69,7 +69,7 @@ const CustomerDetailsPage = () => {
           .from('sales')
           .select(`
             *,
-            customer:custno(custname, custno, address, phone, payterm)
+            customer:custno(custname, custno, address, payterm)
           `)
           .eq('custno', custno)
           .is('deleted_at', null);
@@ -114,20 +114,37 @@ const CustomerDetailsPage = () => {
               total_amount: 0,
               created_at: sale.created_at || new Date().toISOString(),
               created_by: sale.created_by || null,
-              deleted_by: sale.deleted_by || null
+              deleted_by: sale.deleted_by || null,
+              deleted_at: sale.deleted_at || null,
+              modified_at: sale.modified_at || null,
+              modified_by: sale.modified_by || null
             } as SalesRecord;
           }
 
           // Calculate total amount from payments
           const totalAmount = salePayments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
 
+          // Create proper customer data
+          const customerData = sale.customer ? {
+            custno: sale.customer.custno || sale.custno || '',
+            custname: sale.customer.custname || null,
+            address: sale.customer.address || null,
+            city: null,
+            phone: null,
+            payterm: sale.customer.payterm || null
+          } : null;
+
           return {
             ...sale,
+            customer: customerData,
             modifier: modifierData,
             total_amount: totalAmount,
             created_at: sale.created_at || new Date().toISOString(),
             created_by: sale.created_by || null,
-            deleted_by: sale.deleted_by || null
+            deleted_by: sale.deleted_by || null,
+            deleted_at: sale.deleted_at || null,
+            modified_at: sale.modified_at || null,
+            modified_by: sale.modified_by || null
           } as SalesRecord;
         }));
 

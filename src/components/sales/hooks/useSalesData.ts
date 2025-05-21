@@ -65,7 +65,8 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
             prodcode,
             product:prodcode(*)
           `)
-          .eq('transno', sale.transno);
+          .eq('transno', sale.transno)
+          .is('deleted_at', null);
 
         // Calculate expected total from sales details and price history
         let expectedTotal = 0;

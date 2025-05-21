@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -263,7 +262,7 @@ const SaleDetailsPage = () => {
         .eq('transno', transno);
         
       if (!showDeleted) {
-        query = query.filter('deleted_at', 'is', null);
+        query = query.is('deleted_at', null);
       }
       
       const { data: detailsData, error: detailsError } = await query;
@@ -337,9 +336,11 @@ const SaleDetailsPage = () => {
     
     let total = 0;
     salesDetails.forEach(detail => {
-      const unitPrice = detail.unitprice || 0;
-      const quantity = detail.quantity || 0;
-      total += unitPrice * quantity;
+      if (!detail.deleted_at) { // Only include non-deleted items
+        const unitPrice = detail.unitprice || 0;
+        const quantity = detail.quantity || 0;
+        total += unitPrice * quantity;
+      }
     });
     
     return total;
@@ -480,7 +481,7 @@ const SaleDetailsPage = () => {
         }
         
         // Check if product already exists in this transaction
-        const existing = salesDetails.find(detail => detail.prodcode === data.prodcode);
+        const existing = salesDetails.find(detail => detail.prodcode === data.prodcode && !detail.deleted_at);
         if (existing) {
           toast({
             title: "Error",

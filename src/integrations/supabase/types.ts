@@ -304,6 +304,8 @@ export type Database = {
       }
       sales: {
         Row: {
+          created_at: string | null
+          created_by: string | null
           custno: string | null
           deleted_at: string | null
           empno: string | null
@@ -313,6 +315,8 @@ export type Database = {
           transno: string
         }
         Insert: {
+          created_at?: string | null
+          created_by?: string | null
           custno?: string | null
           deleted_at?: string | null
           empno?: string | null
@@ -322,6 +326,8 @@ export type Database = {
           transno: string
         }
         Update: {
+          created_at?: string | null
+          created_by?: string | null
           custno?: string | null
           deleted_at?: string | null
           empno?: string | null
@@ -349,16 +355,22 @@ export type Database = {
       }
       salesdetail: {
         Row: {
+          deleted_at: string | null
+          deleted_by: string | null
           prodcode: string
           quantity: number | null
           transno: string
         }
         Insert: {
+          deleted_at?: string | null
+          deleted_by?: string | null
           prodcode: string
           quantity?: number | null
           transno: string
         }
         Update: {
+          deleted_at?: string | null
+          deleted_by?: string | null
           prodcode?: string
           quantity?: number | null
           transno?: string
