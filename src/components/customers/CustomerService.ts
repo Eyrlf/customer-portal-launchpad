@@ -143,8 +143,10 @@ export async function restoreCustomer(customer: Customer) {
 
 export function getCustomerStatus(customer: Customer) {
   if (customer.deleted_at) return 'Deleted';
-  if (customer.modified_at && !customer.deleted_at) return 'Edited';
-  if (customer.deleted_at === null && customer.modified_by === null && customer.modified_at === null) return 'Added';
-  if (customer.deleted_at === null && customer.modified_by !== null) return 'Restored';
-  return 'Added';
+  if (customer.modified_at && customer.modified_by !== null && !customer.deleted_at) return 'Edited';
+  if (customer.modified_by !== null && customer.modified_at !== null && customer.deleted_at === null) {
+    // Check if it was restored
+    if (customer.modified_by) return 'Restored';
+  }
+  return 'Added'; // Default status is 'Added'
 }

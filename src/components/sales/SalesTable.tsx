@@ -148,10 +148,12 @@ export function SalesTable() {
 
   const getRecordStatus = (sale: SalesRecord) => {
     if (showDeleted && sale.deleted_at) return 'Deleted';
+    if (sale.deleted_at === null && sale.modified_by !== null && sale.modified_at !== null) {
+      // Check if it was restored - this should have priority over edited
+      return 'Restored';
+    }
     if (sale.modified_at && !sale.deleted_at) return 'Edited';
-    if (sale.deleted_at === null && sale.modified_by === null && sale.modified_at === null) return 'Added';
-    if (sale.deleted_at === null && sale.modified_by !== null) return 'Restored';
-    return 'Added';
+    return 'Added'; // Default status is 'Added'
   };
 
   const canAddSale = isAdmin || (userPermissions?.can_add_sales || false);

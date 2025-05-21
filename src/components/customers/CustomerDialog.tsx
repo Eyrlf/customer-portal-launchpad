@@ -17,6 +17,12 @@ export function CustomerDialog({
   formDefaults,
   onSubmit
 }: CustomerDialogProps) {
+  // Ensure the default payment term is set
+  const defaultValues = {
+    ...formDefaults,
+    payterm: formDefaults.payterm || "COD", // Set default payment term if not provided
+  };
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -25,7 +31,7 @@ export function CustomerDialog({
         </DialogHeader>
         
         <CustomerForm
-          defaultValues={formDefaults}
+          defaultValues={defaultValues}
           onSubmit={onSubmit}
           onCancel={() => onOpenChange(false)}
           isEditing={isEditing}
