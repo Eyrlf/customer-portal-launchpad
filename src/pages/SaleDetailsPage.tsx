@@ -18,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/sales/StatusBadge";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -49,8 +48,7 @@ const SaleDetailsPage = () => {
           .from('sales')
           .select(`
             *,
-            customer:custno(custname, custno),
-            employee:empno(firstname, lastname)
+            customer:custno(custname, custno)
           `)
           .eq('transno', transno)
           .single();
@@ -123,20 +121,6 @@ const SaleDetailsPage = () => {
     return payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
   };
 
-  // Determine payment status
-  const getPaymentStatus = () => {
-    const totalAmount = calculateTotalAmount();
-    const paymentsTotal = calculatePaymentsTotal();
-    
-    if (paymentsTotal >= totalAmount && totalAmount > 0) {
-      return 'Paid';
-    } else if (paymentsTotal > 0) {
-      return 'Partial';
-    }
-    
-    return 'Unpaid';
-  };
-
   if (isLoading || loading) {
     return (
       <DashboardLayout>
@@ -197,7 +181,7 @@ const SaleDetailsPage = () => {
         
         {sale ? (
           <>
-            {/* Sale Information Card */}
+            {/* Sale Information Card - Simplified */}
             <Card>
               <CardHeader>
                 <CardTitle>Sales Transaction Information</CardTitle>
@@ -229,20 +213,8 @@ const SaleDetailsPage = () => {
                     </p>
                   </div>
                   <div>
-                    <p className="font-semibold">Employee</p>
-                    <p>
-                      {sale.employee ? 
-                        `${sale.employee.firstname || ''} ${sale.employee.lastname || ''}`.trim() : 
-                        'N/A'}
-                    </p>
-                  </div>
-                  <div>
                     <p className="font-semibold">Total Amount</p>
                     <p>${calculateTotalAmount().toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold">Payment Status</p>
-                    <StatusBadge status={getPaymentStatus()} />
                   </div>
                 </div>
               </CardContent>
@@ -262,14 +234,13 @@ const SaleDetailsPage = () => {
                       <TableHead>Description</TableHead>
                       <TableHead>Quantity</TableHead>
                       <TableHead>Unit</TableHead>
-                      <TableHead>Unit Price</TableHead>
                       <TableHead>Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {salesDetails.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center">No sales details found.</TableCell>
+                        <TableCell colSpan={5} className="text-center">No sales details found.</TableCell>
                       </TableRow>
                     ) : (
                       salesDetails.map((detail) => {
@@ -283,14 +254,13 @@ const SaleDetailsPage = () => {
                             <TableCell>{detail.product?.description || 'N/A'}</TableCell>
                             <TableCell>{quantity}</TableCell>
                             <TableCell>{detail.product?.unit || 'N/A'}</TableCell>
-                            <TableCell>${unitPrice.toFixed(2)}</TableCell>
                             <TableCell>${amount.toFixed(2)}</TableCell>
                           </TableRow>
                         );
                       })
                     )}
                     <TableRow>
-                      <TableCell colSpan={5} className="text-right font-bold">Total:</TableCell>
+                      <TableCell colSpan={4} className="text-right font-bold">Total:</TableCell>
                       <TableCell className="font-bold">${calculateTotalAmount().toFixed(2)}</TableCell>
                     </TableRow>
                   </TableBody>
@@ -298,7 +268,7 @@ const SaleDetailsPage = () => {
               </CardContent>
             </Card>
 
-            {/* Payments */}
+            {/* Payments - Without Balance */}
             <Card>
               <CardHeader>
                 <CardTitle>Payment Records</CardTitle>
@@ -330,12 +300,6 @@ const SaleDetailsPage = () => {
                     <TableRow>
                       <TableCell colSpan={2} className="text-right font-bold">Total Payments:</TableCell>
                       <TableCell className="font-bold">${calculatePaymentsTotal().toFixed(2)}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={2} className="text-right font-bold">Balance:</TableCell>
-                      <TableCell className="font-bold">
-                        ${(calculateTotalAmount() - calculatePaymentsTotal()).toFixed(2)}
-                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>

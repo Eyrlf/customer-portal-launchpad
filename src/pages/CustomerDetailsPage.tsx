@@ -18,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/sales/StatusBadge";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -59,8 +58,7 @@ const CustomerDetailsPage = () => {
           .from('sales')
           .select(`
             *,
-            customer:custno(custname),
-            employee:empno(firstname, lastname)
+            customer:custno(custname)
           `)
           .eq('custno', custno)
           .is('deleted_at', null);
@@ -102,57 +100,17 @@ const CustomerDetailsPage = () => {
             return {
               ...sale,
               modifier: modifierData,
-              total_amount: 0,
-              payment_status: 'Unpaid' as const
+              total_amount: 0
             };
           }
 
           // Calculate total amount from payments
           const totalAmount = salePayments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
 
-          // Determine payment status
-          let paymentStatus: 'Paid' | 'Partial' | 'Unpaid' = 'Unpaid';
-          
-          // Get sales details to determine expected total
-          const { data: salesDetails, error: detailsError } = await supabase
-            .from('salesdetail')
-            .select(`
-              quantity,
-              prodcode,
-              product:prodcode(*)
-            `)
-            .eq('transno', sale.transno);
-
-          if (!detailsError && salesDetails && salesDetails.length > 0) {
-            // Now we'll fetch the price history for each product
-            let expectedTotal = 0;
-            
-            for (const detail of salesDetails) {
-              const { data: priceData, error: priceError } = await supabase
-                .from('pricehist')
-                .select('unitprice')
-                .eq('prodcode', detail.prodcode)
-                .order('effdate', { ascending: false })
-                .limit(1);
-                
-              if (!priceError && priceData && priceData.length > 0) {
-                const unitPrice = priceData[0].unitprice || 0;
-                expectedTotal += (unitPrice * (detail.quantity || 0));
-              }
-            }
-
-            if (totalAmount >= expectedTotal && expectedTotal > 0) {
-              paymentStatus = 'Paid';
-            } else if (totalAmount > 0) {
-              paymentStatus = 'Partial';
-            }
-          }
-
           return {
             ...sale,
             modifier: modifierData,
-            total_amount: totalAmount,
-            payment_status: paymentStatus
+            total_amount: totalAmount
           };
         }));
 
@@ -281,7 +239,7 @@ const CustomerDetailsPage = () => {
               </CardContent>
             </Card>
 
-            {/* Sales Transactions */}
+            {/* Sales Transactions - Simplified */}
             <Card>
               <CardHeader>
                 <CardTitle>Sales Transactions</CardTitle>
@@ -294,29 +252,27 @@ const CustomerDetailsPage = () => {
                       <TableHead>Transaction No</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {sales.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center">No sales records found.</TableCell>
+                        <TableCell colSpan={3} className="text-center">No sales records found.</TableCell>
                       </TableRow>
                     ) : (
                       sales.map((sale) => (
                         <TableRow key={sale.transno}>
-                          <TableCell>{sale.transno}</TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="link" 
+                              className="p-0 h-auto"
+                              onClick={() => navigate(`/dashboard/sales/${sale.transno}`)}
+                            >
+                              {sale.transno}
+                            </Button>
+                          </TableCell>
                           <TableCell>{formatDate(sale.salesdate)}</TableCell>
                           <TableCell>${sale.total_amount?.toFixed(2) || '0.00'}</TableCell>
-                          <TableCell>
-                            {sale.employee ? 
-                              `${sale.employee.firstname || ''} ${sale.employee.lastname || ''}`.trim() : 
-                              'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            <StatusBadge status={sale.payment_status} />
-                          </TableCell>
                         </TableRow>
                       ))
                     )}
