@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,7 +43,7 @@ interface SaleFormProps {
   onCancel: () => void;
 }
 
-// Updated SaleItem to match the database structure
+// Updated SaleItem to match the database structure and include id and deleted_at
 interface SaleItem {
   id?: string;
   prodcode: string;
@@ -51,7 +52,7 @@ interface SaleItem {
   deleted_at?: string | null;
 }
 
-// Updated form schema with proper fields
+// Updated form schema with proper fields including deleted_at
 const formSchema = z.object({
   transno: z.string().min(1, "Transaction number is required"),
   salesdate: z.date().nullable(),
@@ -65,6 +66,9 @@ const formSchema = z.object({
     })
   ),
 });
+
+// This type is derived from the schema for form values
+type FormValues = z.infer<typeof formSchema>;
 
 export function SaleForm({ 
   selectedSale, 
@@ -83,7 +87,7 @@ export function SaleForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       transno: "",
