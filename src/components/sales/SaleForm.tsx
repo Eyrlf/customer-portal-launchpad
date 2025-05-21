@@ -86,7 +86,7 @@ export function SaleForm({
           {/* Sale Items List */}
           <div>
             {!hasSalesDetailPermissions && isEditing && (
-              <Alert variant="warning" className="mb-4">
+              <Alert className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   You don't have permissions to modify sales details. You can only view them.

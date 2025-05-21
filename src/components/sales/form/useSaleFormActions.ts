@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +36,40 @@ export function useSaleFormActions({
   const { toast } = useToast();
   const { isAdmin, permissions } = useAuth();
 
+  // Use this function to check sales details permissions
+  const checkPermission = (
+    action: "add" | "edit" | "delete",
+    showToast = true
+  ): boolean => {
+    let hasPermission = false;
+    let message = "";
+
+    switch (action) {
+      case "add":
+        hasPermission = Boolean(permissions?.can_add_salesdetails || isAdmin);
+        message = "You don't have permission to add items.";
+        break;
+      case "edit":
+        hasPermission = Boolean(permissions?.can_edit_salesdetails || isAdmin);
+        message = "You don't have permission to edit items.";
+        break;
+      case "delete":
+        hasPermission = Boolean(permissions?.can_delete_salesdetails || isAdmin);
+        message = "You don't have permission to delete items.";
+        break;
+    }
+
+    if (!hasPermission && showToast) {
+      toast({
+        title: "Permission Denied",
+        description: message,
+        variant: "destructive",
+      });
+    }
+
+    return hasPermission;
+  };
+
   const handleSubmit = async (values: FormValues) => {
     try {
       // Prevent double submission
@@ -73,7 +106,7 @@ export function useSaleFormActions({
         }
         
         // Only update sales details if we have permission
-        if (permissions?.can_edit_salesdetails || isAdmin) {
+        if (checkPermission("edit", false)) {
           // Process item updates
           for (let i = 0; i < saleItems.length; i++) {
             const item = saleItems[i];
@@ -94,7 +127,7 @@ export function useSaleFormActions({
               }
             } else {
               // Insert new item if we have add permission
-              if (permissions?.can_add_salesdetails || isAdmin) {
+              if (checkPermission("add", false)) {
                 const { error: insertError } = await supabase
                   .from('salesdetail')
                   .insert({
@@ -164,7 +197,7 @@ export function useSaleFormActions({
         console.log("Sale created successfully, inserting details for:", saleItems.length, "items");
         
         // Insert sale details if we have permission
-        if (permissions?.can_add_salesdetails || isAdmin) {
+        if (checkPermission("add", false)) {
           // Insert sale details
           if (saleItems.length > 0) {
             const detailsToInsert = saleItems
@@ -216,52 +249,31 @@ export function useSaleFormActions({
   };
 
   const handleAddProduct = () => {
-    // Check permission
-    if (!permissions?.can_add_salesdetails && !isAdmin) {
-      toast({
-        title: "Permission Denied",
-        description: "You don't have permission to add items.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Check permission using our helper function
+    if (!checkPermission("add")) return;
     
     const newItem = { prodcode: "", quantity: 1, unitprice: 0 };
     const updatedItems = [...saleItems, newItem];
     setSaleItems(updatedItems);
     
-    const currentItems = form.getValues('items') || [];
-    const newFormItem = { 
+    // Update form values with proper types
+    const formItems = form.getValues('items') || [];
+    form.setValue('items', [...formItems, { 
       prodcode: "", 
-      quantity: 1,
+      quantity: 1, 
       id: undefined,
       deleted_at: null
-    };
-    form.setValue('items', [...currentItems, newFormItem]);
+    }]);
   };
 
   const handleEditProduct = (index: number) => {
     // Check edit permission
-    if (!permissions?.can_edit_salesdetails && !isAdmin) {
-      toast({
-        title: "Permission Denied",
-        description: "You don't have permission to edit items.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!checkPermission("edit")) return;
   };
 
   const handleRemoveProduct = (index: number) => {
-    // Check permission
-    if (!permissions?.can_delete_salesdetails && !isAdmin) {
-      toast({
-        title: "Permission Denied",
-        description: "You don't have permission to delete items.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Check delete permission
+    if (!checkPermission("delete")) return;
     
     const itemToRemove = saleItems[index];
     
@@ -286,14 +298,7 @@ export function useSaleFormActions({
   
   const handleSoftDeleteItem = async (item: SaleItem, index: number) => {
     // Check permission
-    if (!permissions?.can_delete_salesdetails && !isAdmin) {
-      toast({
-        title: "Permission Denied",
-        description: "You don't have permission to delete items.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!checkPermission("delete")) return;
     
     if (!item.id) return;
     
@@ -377,13 +382,12 @@ export function useSaleFormActions({
       
       // Update form values
       const currentItems = form.getValues('items');
-      const newItem = { 
+      form.setValue('items', [...currentItems, { 
         id: restoredItem.id,
         prodcode: restoredItem.prodcode, 
         quantity: restoredItem.quantity,
         deleted_at: null
-      };
-      form.setValue('items', [...currentItems, newItem]);
+      }]);
       
       calculateTotal([...saleItems, restoredItem]);
       
@@ -404,14 +408,7 @@ export function useSaleFormActions({
 
   const handleProductChange = (index: number, prodcode: string) => {
     // Check edit permission
-    if (!permissions?.can_edit_salesdetails && !isAdmin && isEditing) {
-      toast({
-        title: "Permission Denied",
-        description: "You don't have permission to edit items.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (isEditing && !checkPermission("edit")) return;
     
     const updatedItems = [...saleItems];
     const product = updatedItems[index] || { quantity: 1, unitprice: 0 };
@@ -432,14 +429,7 @@ export function useSaleFormActions({
 
   const handleQuantityChange = (index: number, quantity: number) => {
     // Check edit permission
-    if (!permissions?.can_edit_salesdetails && !isAdmin && isEditing) {
-      toast({
-        title: "Permission Denied",
-        description: "You don't have permission to edit items.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (isEditing && !checkPermission("edit")) return;
     
     const updatedItems = [...saleItems];
     if (index < updatedItems.length) {
