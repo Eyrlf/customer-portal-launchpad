@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CustomerFormValues } from "./CustomerForm";
 
@@ -156,7 +157,7 @@ export async function deleteCustomer(customer: Customer) {
 
 export async function restoreCustomer(customer: Customer) {
   try {
-    // Check if customer exists
+    // Check if customer exists first
     const { data: existingCustomer, error: checkError } = await supabase
       .from('customer')
       .select('custno')
@@ -168,8 +169,8 @@ export async function restoreCustomer(customer: Customer) {
       throw new Error("Customer not found");
     }
     
-    // Perform the restore operation with only the essential field
-    const { error } = await supabase
+    // Restore the customer by setting deleted_at to null
+    const { data, error } = await supabase
       .from('customer')
       .update({ deleted_at: null })
       .eq('custno', customer.custno);
@@ -187,7 +188,6 @@ export async function restoreCustomer(customer: Customer) {
       details: JSON.stringify(customer),
     });
     
-    // Return updated customer
     return {
       success: true,
       customer: {
