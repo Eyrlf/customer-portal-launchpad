@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CustomerFormValues } from "./CustomerForm";
 
@@ -159,19 +158,43 @@ export async function deleteCustomer(customer: Customer) {
 
 export async function restoreCustomer(customer: Customer) {
   try {
-    // Fixed: Explicitly sent only the fields we want to update
+    // Check if customer exists
+    const { data: checkCustomer, error: checkError } = await supabase
+      .from('customer')
+      .select('custno')
+      .eq('custno', customer.custno)
+      .single();
+      
+    if (checkError) {
+      console.error("Error checking customer existence:", checkError);
+      throw new Error("Customer not found");
+    }
+    
+    // Simple, focused update with only necessary fields
     const { error } = await supabase
       .from('customer')
       .update({ 
-        deleted_at: null,
-        modified_at: new Date().toISOString(),
-        modified_by: (await supabase.auth.getUser()).data.user?.id
+        deleted_at: null 
       })
       .eq('custno', customer.custno);
     
     if (error) {
       console.error("Supabase error in restoreCustomer:", error);
       throw error;
+    }
+    
+    // Update modification tracking in a separate call to avoid potential conflicts
+    const { error: updateError } = await supabase
+      .from('customer')
+      .update({
+        modified_at: new Date().toISOString(),
+        modified_by: (await supabase.auth.getUser()).data.user?.id
+      })
+      .eq('custno', customer.custno);
+      
+    if (updateError) {
+      console.error("Error updating modification tracking:", updateError);
+      // Continue anyway since the main restore was successful
     }
     
     // Log activity

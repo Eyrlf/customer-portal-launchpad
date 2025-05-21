@@ -244,7 +244,7 @@ export function UsersTable() {
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="max-h-[80px]">
                         <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="customer">Customer</SelectItem>
                       </SelectContent>

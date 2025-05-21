@@ -93,11 +93,11 @@ export function CustomerForm({
                 defaultValue={field.value}
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-40">
                     <SelectValue placeholder="Select payment term" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="w-40">
                   <SelectItem value="COD">COD</SelectItem>
                   <SelectItem value="30D">30D</SelectItem>
                   <SelectItem value="45D">45D</SelectItem>
