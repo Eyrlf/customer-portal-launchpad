@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -259,14 +258,28 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
     }
     
     try {
-      await restoreCustomer(customer);
+      const result = await restoreCustomer(customer);
       
       toast({
         title: "Customer Restored",
         description: `Customer ${customer.custname} has been restored.`,
       });
       
-      loadCustomersData();
+      // Add the restored customer to the active customers list with the 'restore' action
+      const restoredCustomer = {
+        ...customer,
+        deleted_at: null,
+        action: 'restore'
+      };
+      
+      // Update the customers list to include the restored customer
+      setCustomers(prevCustomers => [restoredCustomer, ...prevCustomers]);
+      
+      // Remove from deleted customers list
+      setDeletedCustomers(prevDeleted => 
+        prevDeleted.filter(c => c.custno !== customer.custno)
+      );
+      
     } catch (error) {
       console.error('Error restoring customer:', error);
       toast({
@@ -296,6 +309,18 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
           payterm: values.payterm,
         });
         
+        // Update the customer in the state with 'Edited' status
+        setCustomers(prev => prev.map(cust => 
+          cust.custno === selectedCustomer.custno 
+            ? { ...cust, 
+                custname: values.custname, 
+                address: values.address, 
+                payterm: values.payterm, 
+                modified_at: new Date().toISOString() // Add modified timestamp for status tracking
+              } 
+            : cust
+        ));
+        
         toast({
           title: "Customer Updated",
           description: `Customer ${values.custname} has been updated successfully.`,
@@ -313,6 +338,18 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
         // Create new customer
         await createCustomer(values);
         
+        // Add the new customer to the state
+        const newCustomer = {
+          custno: values.custno,
+          custname: values.custname,
+          address: values.address,
+          payterm: values.payterm,
+          deleted_at: null,
+          action: 'add' // Mark as newly added
+        };
+        
+        setCustomers(prev => [newCustomer, ...prev]);
+        
         toast({
           title: "Customer Created",
           description: `Customer ${values.custname} has been created successfully.`,
@@ -320,7 +357,6 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
       }
       
       setDialogOpen(false);
-      loadCustomersData();
     } catch (error: any) {
       console.error('Error submitting customer:', error);
       
@@ -359,8 +395,7 @@ export function CustomersTable({ sortOrder = "asc" }: CustomersTableProps) {
       // Apply status filter
       let matchesStatus = true;
       if (statusFilter !== "All Status") {
-        const status = showDeleted ? "Deleted" : 
-                    (customer.modified_at ? "Edited" : "Added");
+        const status = getCustomerStatus(customer);
         matchesStatus = statusFilter === status;
       }
 

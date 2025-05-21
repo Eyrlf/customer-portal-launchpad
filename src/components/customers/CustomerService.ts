@@ -76,8 +76,6 @@ export async function createCustomer(values: CustomerFormValues) {
         custname: values.custname,
         address: values.address,
         payterm: values.payterm || 'COD', // Ensure payterm has a default value
-        modified_at: null, // Ensure it's null for new customers
-        modified_by: null  // Ensure it's null for new customers
       });
     
     if (error) throw error;
@@ -108,14 +106,13 @@ export async function updateCustomer(custno: string, values: Omit<CustomerFormVa
       values.address = values.address.substring(0, 50);
     }
     
+    // Update customer without trying to set modified_at or modified_by fields
     const { data, error } = await supabase
       .from('customer')
       .update({
         custname: values.custname,
         address: values.address,
         payterm: values.payterm || 'COD',
-        modified_at: new Date().toISOString(),
-        modified_by: (await supabase.auth.getUser()).data.user?.id
       })
       .eq('custno', custno);
     
@@ -179,8 +176,6 @@ export async function restoreCustomer(customer: Customer) {
       .from('customer')
       .update({ 
         deleted_at: null,
-        // Set action to 'restore' to mark this as a restored customer
-        // This field isn't in the DB, but we'll add it to the returned object
       })
       .eq('custno', customer.custno);
     
@@ -220,8 +215,10 @@ export function getCustomerStatus(customer: Customer) {
     return 'Restored';
   }
   
-  // If it has modified fields, return 'Edited'
-  if (customer.modified_at && customer.modified_by) {
+  // Check if the customer is in the activity logs as 'update'
+  // Since we don't have direct access to activity logs here, we rely on the action field
+  // that we set when restoring a customer
+  if (customer.modified_at) {
     return 'Edited';
   }
   

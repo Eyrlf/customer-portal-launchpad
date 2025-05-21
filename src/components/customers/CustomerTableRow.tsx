@@ -13,6 +13,7 @@ interface Customer {
   deleted_at: string | null;
   modified_at?: string | null;
   modified_by?: string | null;
+  action?: string; // Used to track restore action
 }
 
 interface CustomerTableRowProps {
