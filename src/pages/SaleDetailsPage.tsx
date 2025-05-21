@@ -1,10 +1,11 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { SalesRecord, Payment } from "@/components/sales/types";
+import { SalesRecord, Payment, SalesDetailFromDB, Product } from "@/components/sales/types";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -47,12 +48,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-interface Product {
-  prodcode: string;
-  description: string | null;
-  unit: string | null;
-}
-
 interface SalesDetailWithProduct {
   transno: string;
   prodcode: string;
@@ -63,6 +58,8 @@ interface SalesDetailWithProduct {
     unit: string | null;
   };
   unitprice?: number | null;
+  deleted_at?: string | null;
+  id?: string;
 }
 
 interface SalesDetailDialogProps {
@@ -199,6 +196,7 @@ const SaleDetailsPage = () => {
   const { transno } = useParams<{ transno: string }>();
   const [sale, setSale] = useState<SalesRecord | null>(null);
   const [salesDetails, setSalesDetails] = useState<SalesDetailWithProduct[]>([]);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
@@ -208,7 +206,7 @@ const SaleDetailsPage = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, permissions } = useAuth();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -216,95 +214,101 @@ const SaleDetailsPage = () => {
     }
   }, [isAuthenticated, isLoading, navigate]);
   
-  useEffect(() => {
+  const fetchSaleDetails = async () => {
     if (!transno) return;
     
-    const fetchSaleDetails = async () => {
-      setLoading(true);
-      try {
-        // Fetch sale info
-        const { data: saleData, error: saleError } = await supabase
-          .from('sales')
-          .select(`
-            *,
-            customer:custno(custname, custno)
-          `)
-          .eq('transno', transno)
-          .single();
+    setLoading(true);
+    try {
+      // Fetch sale info
+      const { data: saleData, error: saleError } = await supabase
+        .from('sales')
+        .select(`
+          *,
+          customer:custno(custname, custno)
+        `)
+        .eq('transno', transno)
+        .single();
+      
+      if (saleError) throw saleError;
+      
+      // Format sale data to match SalesRecord interface
+      const formattedSale: SalesRecord = {
+        ...saleData,
+        created_at: saleData.created_at || "",
+        created_by: saleData.created_by || null,
+        deleted_by: saleData.deleted_by || null
+      };
+      
+      setSale(formattedSale);
+
+      // Fetch sales details with deleted flag
+      let query = supabase
+        .from('salesdetail')
+        .select(`
+          *,
+          product:prodcode(*)
+        `)
+        .eq('transno', transno);
         
-        if (saleError) throw saleError;
-        
-        // Format sale data to match SalesRecord interface
-        const formattedSale: SalesRecord = {
-          ...saleData,
-          created_at: saleData.created_at || "",
-          created_by: saleData.created_by || null,
-          deleted_by: saleData.deleted_by || null
-        };
-        
-        setSale(formattedSale);
-        
-        // Fetch sales details with latest price history
-        const { data: detailsData, error: detailsError } = await supabase
-          .from('salesdetail')
-          .select(`
-            *,
-            product:prodcode(*)
-          `)
-          .eq('transno', transno);
-        
-        if (detailsError) throw detailsError;
-        
-        // For each sales detail, get the unit price from pricehist
-        const detailsWithPrices = await Promise.all((detailsData || []).map(async (detail) => {
-          // Get the latest price before or on the sales date
-          const { data: priceData } = await supabase
-            .from('pricehist')
-            .select('unitprice')
-            .eq('prodcode', detail.prodcode)
-            .lte('effdate', saleData.salesdate || new Date().toISOString())
-            .order('effdate', { ascending: false })
-            .limit(1);
-            
-          return {
-            ...detail,
-            unitprice: priceData && priceData.length > 0 ? priceData[0].unitprice : 0
-          };
-        }));
-        
-        setSalesDetails(detailsWithPrices as SalesDetailWithProduct[]);
-        
-        // Fetch payments for this transaction
-        const { data: paymentsData, error: paymentsError } = await supabase
-          .from('payment')
-          .select('*')
-          .eq('transno', transno);
-        
-        if (paymentsError) throw paymentsError;
-        setPayments(paymentsData as Payment[] || []);
-        
-        // Fetch all products for the dialog
-        const { data: productsData, error: productsError } = await supabase
-          .from('product')
-          .select('*')
-          .order('prodcode');
-          
-        if (productsError) throw productsError;
-        setProducts(productsData as Product[] || []);
-      } catch (error) {
-        console.error('Error fetching sale details:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch sale details.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+      if (!showDeleted) {
+        query = query.filter('deleted_at', 'is', null);
       }
-    };
-    
+      
+      const { data: detailsData, error: detailsError } = await query;
+      
+      if (detailsError) throw detailsError;
+      
+      // For each sales detail, get the unit price from pricehist
+      const detailsWithPrices = await Promise.all((detailsData || []).map(async (detail) => {
+        // Get the latest price before or on the sales date
+        const { data: priceData } = await supabase
+          .from('pricehist')
+          .select('unitprice')
+          .eq('prodcode', detail.prodcode)
+          .lte('effdate', saleData.salesdate || new Date().toISOString())
+          .order('effdate', { ascending: false })
+          .limit(1);
+          
+        return {
+          ...detail,
+          unitprice: priceData && priceData.length > 0 ? priceData[0].unitprice : 0
+        };
+      }));
+      
+      setSalesDetails(detailsWithPrices as SalesDetailWithProduct[]);
+      
+      // Fetch payments for this transaction
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payment')
+        .select('*')
+        .eq('transno', transno);
+      
+      if (paymentsError) throw paymentsError;
+      setPayments(paymentsData as Payment[] || []);
+      
+      // Fetch all products for the dialog
+      const { data: productsData, error: productsError } = await supabase
+        .from('product')
+        .select('*')
+        .order('prodcode');
+          
+      if (productsError) throw productsError;
+      setProducts(productsData as Product[] || []);
+    } catch (error) {
+      console.error('Error fetching sale details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch sale details.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchSaleDetails();
-  }, [transno, toast]);
+  }, [transno, showDeleted, toast]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
@@ -337,20 +341,89 @@ const SaleDetailsPage = () => {
   };
 
   const handleAddSalesDetail = () => {
+    // Check permission
+    if (!isAdmin && !permissions?.can_add_salesdetails) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to add sales details.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setCurrentSalesDetail(null);
     setIsEditing(false);
     setIsDialogOpen(true);
   };
 
   const handleEditSalesDetail = (detail: SalesDetailWithProduct) => {
+    // Check permission
+    if (!isAdmin && !permissions?.can_edit_salesdetails) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to edit sales details.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setCurrentSalesDetail(detail);
     setIsEditing(true);
     setIsDialogOpen(true);
   };
 
   const handleDeleteSalesDetail = (detail: SalesDetailWithProduct) => {
+    // Check permission
+    if (!isAdmin && !permissions?.can_delete_salesdetails) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to delete sales details.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setCurrentSalesDetail(detail);
     setIsDeleteDialogOpen(true);
+  };
+  
+  const handleRestoreSalesDetail = async (detail: SalesDetailWithProduct) => {
+    // Only admin can restore
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can restore deleted items.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('salesdetail')
+        .update({
+          deleted_at: null,
+          deleted_by: null
+        })
+        .eq('transno', detail.transno)
+        .eq('prodcode', detail.prodcode);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Sales detail restored successfully.",
+      });
+      
+      fetchSaleDetails();
+    } catch (error) {
+      console.error('Error restoring sales detail:', error);
+      toast({
+        title: "Error",
+        description: "Failed to restore sales detail.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSaveSalesDetail = async (data: SalesDetailFormValues) => {
@@ -358,6 +431,16 @@ const SaleDetailsPage = () => {
 
     try {
       if (isEditing && currentSalesDetail) {
+        // Check permission
+        if (!isAdmin && !permissions?.can_edit_salesdetails) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to edit sales details.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         // Update existing sales detail
         const { error } = await supabase
           .from('salesdetail')
@@ -374,6 +457,16 @@ const SaleDetailsPage = () => {
           description: "Sales detail updated successfully.",
         });
       } else {
+        // Check permission
+        if (!isAdmin && !permissions?.can_add_salesdetails) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to add sales details.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         // Check if product already exists in this transaction
         const existing = salesDetails.find(detail => detail.prodcode === data.prodcode);
         if (existing) {
@@ -403,35 +496,8 @@ const SaleDetailsPage = () => {
         });
       }
 
-      // Refresh sales details
-      const { data: refreshedData, error: refreshError } = await supabase
-        .from('salesdetail')
-        .select(`
-          *,
-          product:prodcode(*)
-        `)
-        .eq('transno', transno);
-        
-      if (refreshError) throw refreshError;
-      
-      // Get unit prices for refreshed data
-      const detailsWithPrices = await Promise.all((refreshedData || []).map(async (detail) => {
-        // Get the latest price before or on the sales date
-        const { data: priceData } = await supabase
-          .from('pricehist')
-          .select('unitprice')
-          .eq('prodcode', detail.prodcode)
-          .lte('effdate', sale?.salesdate || new Date().toISOString())
-          .order('effdate', { ascending: false })
-          .limit(1);
-          
-        return {
-          ...detail,
-          unitprice: priceData && priceData.length > 0 ? priceData[0].unitprice : 0
-        };
-      }));
-      
-      setSalesDetails(detailsWithPrices as SalesDetailWithProduct[]);
+      // Refresh the data
+      fetchSaleDetails();
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error saving sales detail:', error);
@@ -447,23 +513,34 @@ const SaleDetailsPage = () => {
     if (!currentSalesDetail || !transno) return;
 
     try {
+      // Check permission
+      if (!isAdmin && !permissions?.can_delete_salesdetails) {
+        toast({
+          title: "Permission Denied",
+          description: "You don't have permission to delete sales details.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Soft delete - update with deleted_at timestamp
       const { error } = await supabase
         .from('salesdetail')
-        .delete()
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: (await supabase.auth.getUser()).data.user?.id
+        })
         .eq('transno', transno)
         .eq('prodcode', currentSalesDetail.prodcode);
 
       if (error) throw error;
       
-      // Remove from local state
-      setSalesDetails(salesDetails.filter(
-        detail => !(detail.transno === transno && detail.prodcode === currentSalesDetail.prodcode)
-      ));
-      
       toast({
         title: "Success",
         description: "Sales detail deleted successfully.",
       });
+      
+      fetchSaleDetails();
     } catch (error) {
       console.error('Error deleting sales detail:', error);
       toast({
@@ -522,6 +599,10 @@ const SaleDetailsPage = () => {
     return null;
   }
 
+  const canAddSalesDetail = isAdmin || permissions?.can_add_salesdetails;
+  const canEditSalesDetail = isAdmin || permissions?.can_edit_salesdetails;
+  const canDeleteSalesDetail = isAdmin || permissions?.can_delete_salesdetails;
+
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
@@ -576,53 +657,115 @@ const SaleDetailsPage = () => {
               </CardContent>
             </Card>
 
-            {/* Sales Details - Read-only view */}
+            {/* Transaction Items Card */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Sales Details</CardTitle>
+                <CardTitle>Transaction Items</CardTitle>
+                <div className="flex space-x-2">
+                  {isAdmin && (
+                    <Button 
+                      variant="outline"
+                      onClick={() => setShowDeleted(!showDeleted)}
+                    >
+                      {showDeleted ? "Show Active Items" : "Show Deleted Items"}
+                    </Button>
+                  )}
+                  {canAddSalesDetail && !showDeleted && (
+                    <Button 
+                      onClick={handleAddSalesDetail}
+                      className="bg-blue-500 hover:bg-blue-600"
+                    >
+                      <Plus size={16} className="mr-2" /> Add Product
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableCaption>List of items in this transaction</TableCaption>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product Code</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Price per Unit</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead>Unit</TableHead>
-                      <TableHead>Total Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {salesDetails.length === 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center">No sales details found.</TableCell>
+                        <TableHead>Product Code</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Price Per Unit</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead>Unit</TableHead>
+                        <TableHead>Total Amount</TableHead>
+                        <TableHead className="w-[120px]">Actions</TableHead>
                       </TableRow>
-                    ) : (
-                      salesDetails.map((detail) => {
-                        const unitPrice = detail.unitprice || 0;
-                        const quantity = detail.quantity || 0;
-                        const amount = unitPrice * quantity;
-                        
-                        return (
-                          <TableRow key={`${detail.transno}-${detail.prodcode}`}>
-                            <TableCell>{detail.prodcode}</TableCell>
-                            <TableCell>{detail.product?.description || 'N/A'}</TableCell>
-                            <TableCell>${unitPrice.toFixed(2)}</TableCell>
-                            <TableCell>{quantity}</TableCell>
-                            <TableCell>{detail.product?.unit || 'N/A'}</TableCell>
-                            <TableCell>${amount.toFixed(2)}</TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-right font-bold">Total:</TableCell>
-                      <TableCell className="font-bold">${calculateTotalAmount().toFixed(2)}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {salesDetails.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center">
+                            {showDeleted ? "No deleted items found." : "No items in this transaction."}
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        salesDetails.map((detail) => {
+                          const unitPrice = detail.unitprice || 0;
+                          const quantity = detail.quantity || 0;
+                          const amount = unitPrice * quantity;
+                          
+                          return (
+                            <TableRow key={`${detail.transno}-${detail.prodcode}`} className={detail.deleted_at ? "bg-gray-50" : ""}>
+                              <TableCell>{detail.prodcode}</TableCell>
+                              <TableCell>{detail.product?.description || 'N/A'}</TableCell>
+                              <TableCell>${unitPrice.toFixed(2)}</TableCell>
+                              <TableCell>{quantity}</TableCell>
+                              <TableCell>{detail.product?.unit || 'N/A'}</TableCell>
+                              <TableCell>${amount.toFixed(2)}</TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  {detail.deleted_at ? (
+                                    isAdmin && (
+                                      <Button
+                                        onClick={() => handleRestoreSalesDetail(detail)}
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-purple-500 hover:text-purple-700"
+                                      >
+                                        Restore
+                                      </Button>
+                                    )
+                                  ) : (
+                                    <>
+                                      {canEditSalesDetail && (
+                                        <Button
+                                          onClick={() => handleEditSalesDetail(detail)}
+                                          variant="outline"
+                                          size="sm"
+                                          className="text-blue-500 hover:text-blue-700"
+                                        >
+                                          Edit
+                                        </Button>
+                                      )}
+                                      {canDeleteSalesDetail && (
+                                        <Button
+                                          onClick={() => handleDeleteSalesDetail(detail)}
+                                          variant="outline"
+                                          size="sm"
+                                          className="text-red-500 hover:text-red-700"
+                                        >
+                                          Delete
+                                        </Button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-right font-bold">Total:</TableCell>
+                        <TableCell className="font-bold">${calculateTotalAmount().toFixed(2)}</TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
 
@@ -687,7 +830,7 @@ const SaleDetailsPage = () => {
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this item? This action cannot be undone.
+              Are you sure you want to delete this item? This can be restored later if needed.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

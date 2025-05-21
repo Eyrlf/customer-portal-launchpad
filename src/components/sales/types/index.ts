@@ -6,7 +6,7 @@ export interface SalesDetailItem {
   unitprice: number;
 }
 
-// Added SalesDetailFromDB interface to fix the missing type error
+// SalesDetailFromDB interface to fix the missing type error
 export interface SalesDetailFromDB {
   id?: string;
   transno: string;
@@ -15,9 +15,10 @@ export interface SalesDetailFromDB {
   deleted_at?: string | null;
   deleted_by?: string | null;
   product?: Product;
+  unitprice?: number;
 }
 
-// Make sure UserPermission includes salesdetails permissions
+// Updated UserPermission interface to include salesdetails permissions
 export interface UserPermission {
   id: string;
   user_id: string;
@@ -34,7 +35,7 @@ export interface UserPermission {
   updated_at: string;
 }
 
-// Updated SalesRecord to include modifier property and other missing fields
+// Updated SalesRecord to be complete with all fields
 export interface SalesRecord {
   transno: string;
   salesdate: string | null;
@@ -50,7 +51,6 @@ export interface SalesRecord {
   payment_status?: 'Paid' | 'Partial' | 'Unpaid';
   customer?: Customer;
   employee?: Employee;
-  // Add modifier property to fix type errors
   modifier?: {
     email?: string;
     user_metadata?: {
@@ -61,7 +61,7 @@ export interface SalesRecord {
   } | null;
 }
 
-// Updated Customer to include payterm property
+// Updated Customer interface to match DB schema
 export interface Customer {
   custno: string;
   custname: string | null;
@@ -71,7 +71,7 @@ export interface Customer {
   payterm?: string | null;
 }
 
-// Updated Employee interface to match database structure
+// Updated Employee interface
 export interface Employee {
   empno: string;
   empname?: string | null;
