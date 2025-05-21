@@ -72,6 +72,15 @@ export function SalesDetailActions({
   const canEdit = permissions?.can_edit_salesdetails || isAdmin;
   const canDelete = permissions?.can_delete_salesdetails || isAdmin;
 
+  // If user has no permissions, don't even render the dropdown
+  if (!showDeleted && !canEdit && !canDelete) {
+    return null;
+  }
+
+  if (showDeleted && !isAdmin) {
+    return null;
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

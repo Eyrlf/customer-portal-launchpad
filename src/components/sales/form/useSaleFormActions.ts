@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -232,8 +233,9 @@ export function useSaleFormActions({
     const currentItems = form.getValues('items') || [];
     const newFormItem = { 
       prodcode: "", 
-      quantity: 1, 
-      deleted_at: null 
+      quantity: 1,
+      id: undefined,
+      deleted_at: null
     };
     form.setValue('items', [...currentItems, newFormItem]);
   };

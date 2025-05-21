@@ -104,19 +104,21 @@ export function SaleItemList({
             </div>
             
             <div className="mb-1">
-              <SalesDetailActions
-                item={{
-                  id: item.id || "",
-                  transno: selectedSaleTransno,
-                  prodcode: item.prodcode,
-                  quantity: item.quantity,
-                  deleted_at: item.deleted_at
-                }}
-                onEdit={() => onEditProduct(index)}
-                onDelete={() => onRemoveProduct(index)}
-                onRestore={() => onRestoreProduct(item, index)}
-                showDeleted={showDeleted}
-              />
+              {(canEditItems || canDeleteItems || (showDeleted && isAdmin)) && (
+                <SalesDetailActions
+                  item={{
+                    id: item.id || "",
+                    transno: selectedSaleTransno,
+                    prodcode: item.prodcode,
+                    quantity: item.quantity,
+                    deleted_at: item.deleted_at
+                  }}
+                  onEdit={() => onEditProduct(index)}
+                  onDelete={() => onRemoveProduct(index)}
+                  onRestore={() => onRestoreProduct(item, index)}
+                  showDeleted={showDeleted}
+                />
+              )}
             </div>
           </div>
         ))

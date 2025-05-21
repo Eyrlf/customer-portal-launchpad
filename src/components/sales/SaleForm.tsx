@@ -7,6 +7,8 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Import our new components and hooks
 import { SaleFormHeader } from "./form/SaleFormHeader";
@@ -26,6 +28,12 @@ export function SaleForm({
   const { isAdmin, permissions } = useAuth();
   const [showDeleted, setShowDeleted] = useState(false);
   
+  // Check if user has any permissions related to sales details
+  const hasSalesDetailPermissions = isAdmin || 
+    permissions?.can_add_salesdetails || 
+    permissions?.can_edit_salesdetails || 
+    permissions?.can_delete_salesdetails;
+
   // Initialize form state using our custom hook
   const {
     form,
@@ -77,9 +85,18 @@ export function SaleForm({
           
           {/* Sale Items List */}
           <div>
+            {!hasSalesDetailPermissions && isEditing && (
+              <Alert variant="warning" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  You don't have permissions to modify sales details. You can only view them.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div className="flex justify-between items-center mb-2">
               <div className="flex gap-2">
-                {isEditing && (
+                {isEditing && isAdmin && (
                   <Button 
                     type="button" 
                     variant="outline"
