@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,6 +51,7 @@ interface SaleItem {
   deleted_at?: string | null;
 }
 
+// Updated the form schema to match the SaleItem interface
 const formSchema = z.object({
   transno: z.string().min(1, "Transaction number is required"),
   salesdate: z.date().nullable(),
@@ -58,6 +60,8 @@ const formSchema = z.object({
     z.object({
       prodcode: z.string().min(1, "Product is required"),
       quantity: z.number().min(1, "Quantity must be at least 1"),
+      id: z.string().optional(),
+      deleted_at: z.string().nullable().optional(),
     })
   ),
 });
@@ -236,7 +240,8 @@ export function SaleForm({
         setSaleItems(items);
         form.setValue('items', items.map(item => ({ 
           prodcode: item.prodcode, 
-          quantity: item.quantity 
+          quantity: item.quantity,
+          id: item.id
         })));
         
         calculateTotal(items);
@@ -580,7 +585,9 @@ export function SaleForm({
       const currentItems = form.getValues('items');
       form.setValue('items', [...currentItems, { 
         prodcode: restoredItem.prodcode, 
-        quantity: restoredItem.quantity 
+        quantity: restoredItem.quantity,
+        id: restoredItem.id,
+        deleted_at: null
       }]);
       
       calculateTotal([...saleItems, restoredItem]);
