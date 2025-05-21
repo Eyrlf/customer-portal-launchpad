@@ -9,6 +9,8 @@ import { Plus } from "lucide-react";
 import { SalesDetailItem } from "../types";
 import { Product, SaleItem } from "./types";
 import { SalesDetailActions } from "../SalesDetailActions";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface SaleItemListProps {
   items: SaleItem[];
@@ -55,6 +57,15 @@ export function SaleItemList({
           </Button>
         )}
       </div>
+      
+      {!canEditItems && !canAddItems && !canDeleteItems && !showDeleted && (
+        <Alert className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            You don't have permissions to modify sales details. You can only view them.
+          </AlertDescription>
+        </Alert>
+      )}
       
       {items.length === 0 ? (
         <div className="text-center py-4 text-gray-500">
@@ -104,21 +115,19 @@ export function SaleItemList({
             </div>
             
             <div className="mb-1">
-              {(canEditItems || canDeleteItems || (showDeleted && isAdmin)) && (
-                <SalesDetailActions
-                  item={{
-                    id: item.id || "",
-                    transno: selectedSaleTransno,
-                    prodcode: item.prodcode,
-                    quantity: item.quantity,
-                    deleted_at: item.deleted_at
-                  }}
-                  onEdit={() => onEditProduct(index)}
-                  onDelete={() => onRemoveProduct(index)}
-                  onRestore={() => onRestoreProduct(item, index)}
-                  showDeleted={showDeleted}
-                />
-              )}
+              <SalesDetailActions
+                item={{
+                  id: item.id || "",
+                  transno: selectedSaleTransno,
+                  prodcode: item.prodcode,
+                  quantity: item.quantity,
+                  deleted_at: item.deleted_at
+                }}
+                onEdit={() => onEditProduct(index)}
+                onDelete={() => onRemoveProduct(index)}
+                onRestore={() => onRestoreProduct(item, index)}
+                showDeleted={showDeleted}
+              />
             </div>
           </div>
         ))

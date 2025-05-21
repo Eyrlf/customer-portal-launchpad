@@ -1,9 +1,9 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FormValues } from "./types";
+import { FormValues, SaleItem } from "./types";
 import { SalesRecord } from "../types";
-import { SaleItem } from "./types";
 import { UseFormReturn } from "react-hook-form";
 
 interface UseSaleFormActionsProps {
@@ -42,29 +42,38 @@ export function useSaleFormActions({
     showToast = true
   ): boolean => {
     let hasPermission = false;
-    let message = "";
 
     switch (action) {
       case "add":
         hasPermission = Boolean(permissions?.can_add_salesdetails || isAdmin);
-        message = "You don't have permission to add items.";
+        if (!hasPermission && showToast) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to add items.",
+            variant: "destructive",
+          });
+        }
         break;
       case "edit":
         hasPermission = Boolean(permissions?.can_edit_salesdetails || isAdmin);
-        message = "You don't have permission to edit items.";
+        if (!hasPermission && showToast) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to edit items.",
+            variant: "destructive",
+          });
+        }
         break;
       case "delete":
         hasPermission = Boolean(permissions?.can_delete_salesdetails || isAdmin);
-        message = "You don't have permission to delete items.";
+        if (!hasPermission && showToast) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to delete items.",
+            variant: "destructive",
+          });
+        }
         break;
-    }
-
-    if (!hasPermission && showToast) {
-      toast({
-        title: "Permission Denied",
-        description: message,
-        variant: "destructive",
-      });
     }
 
     return hasPermission;

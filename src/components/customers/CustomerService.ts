@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CustomerFormValues } from "./CustomerForm";
 
@@ -204,14 +203,17 @@ export async function restoreCustomer(customer: Customer) {
 export function getCustomerStatus(customer: Customer) {
   if (customer.deleted_at) return 'Deleted';
   
-  if (customer.modified_by !== null && customer.modified_at !== null) {
-    // For restored customers
-    const { action } = customer as any; 
-    if (action === 'restore') {
+  if (customer.modified_at !== null && customer.modified_by !== null) {
+    // Check for the action property if available (used when restored)
+    const customerAny = customer as any;
+    if (customerAny.action === 'restore') {
       return 'Restored';
     }
+    
+    // Only return Edited if the customer has been modified
     return 'Edited';
   }
   
-  return 'Added'; // Default status is 'Added'
+  // Default status for newly added customers
+  return 'Added';
 }

@@ -29,6 +29,15 @@ export function SalesDetailActions({
   const { isAdmin, permissions } = useAuth();
   const { toast } = useToast();
 
+  // Don't even render the component if user doesn't have permissions
+  if (showDeleted && !isAdmin) return null;
+  
+  if (!showDeleted && !isAdmin && 
+      !permissions?.can_edit_salesdetails && 
+      !permissions?.can_delete_salesdetails) {
+    return null;
+  }
+
   const handleEdit = () => {
     if (!permissions?.can_edit_salesdetails && !isAdmin) {
       toast({
@@ -67,19 +76,6 @@ export function SalesDetailActions({
     
     onRestore();
   };
-  
-  // Only show actions the user has permission for
-  const canEdit = permissions?.can_edit_salesdetails || isAdmin;
-  const canDelete = permissions?.can_delete_salesdetails || isAdmin;
-
-  // If user has no permissions, don't even render the dropdown
-  if (!showDeleted && !canEdit && !canDelete) {
-    return null;
-  }
-
-  if (showDeleted && !isAdmin) {
-    return null;
-  }
 
   return (
     <DropdownMenu>
@@ -100,13 +96,13 @@ export function SalesDetailActions({
           </>
         ) : (
           <>
-            {canEdit && (
+            {(permissions?.can_edit_salesdetails || isAdmin) && (
               <DropdownMenuItem onClick={handleEdit}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
             )}
-            {canDelete && (
+            {(permissions?.can_delete_salesdetails || isAdmin) && (
               <DropdownMenuItem onClick={handleDelete}>
                 <Trash className="mr-2 h-4 w-4" />
                 Delete
