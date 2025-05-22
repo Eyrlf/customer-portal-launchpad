@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { CustomerActions } from "./CustomerActions";
 import { StatusBadge } from "../sales/StatusBadge";
 import { getCustomerStatus } from "./CustomerService";
-import { formatDate } from "../sales/utils/formatters";
+import { format } from "date-fns";
 
 interface Customer {
   custno: string;
@@ -43,6 +43,35 @@ export function CustomerTableRow({
   // Priority is given to the 'restore' action if present
   const status = getCustomerStatus(customer);
 
+  // Format date and time in the required format
+  const formatStampDateTime = (dateString: string | null | undefined, name: string | null | undefined): string => {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      
+      const formattedDate = format(date, 'dd/MM/yyyy HH:mm:ss');
+      return name ? `${name} ${formattedDate}` : formattedDate;
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return '';
+    }
+  };
+
+  // Generate stamp information
+  const getStampInfo = (customer: Customer): string => {
+    if (customer.modified_by && customer.modified_at) {
+      return formatStampDateTime(customer.modified_at, customer.modified_by);
+    }
+    
+    if (customer.created_by && customer.created_at) {
+      return formatStampDateTime(customer.created_at, customer.created_by);
+    }
+    
+    return '';
+  };
+
   return (
     <TableRow className={showDeleted ? "bg-gray-50 dark:bg-gray-700" : ""}>
       <TableCell>{customer.custno}</TableCell>
@@ -71,28 +100,7 @@ export function CustomerTableRow({
       {/* Only show Stamp column for admin users */}
       {isAdmin && (
         <TableCell className="text-xs text-gray-500">
-          {customer.modified_at && (
-            <div>
-              Modified: {formatDate(customer.modified_at)}
-              <br />
-              By: {customer.modified_by || 'Unknown'}
-            </div>
-          )}
-          {customer.deleted_at && !customer.modified_at && (
-            <div>
-              Deleted: {formatDate(customer.deleted_at)}
-            </div>
-          )}
-          {!customer.deleted_at && !customer.modified_at && customer.created_at && (
-            <div>
-              Created: {formatDate(customer.created_at)}
-              <br />
-              By: {customer.created_by || 'Unknown'}
-            </div>
-          )}
-          {!customer.deleted_at && !customer.modified_at && !customer.created_at && (
-            <div>No timestamp available</div>
-          )}
+          {getStampInfo(customer)}
         </TableCell>
       )}
       

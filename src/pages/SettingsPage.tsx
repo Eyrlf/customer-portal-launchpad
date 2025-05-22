@@ -42,13 +42,6 @@ const SettingsPage = () => {
           setSettings({
             darkMode: parsedSettings.darkMode !== undefined ? parsedSettings.darkMode : false
           });
-          
-          // Apply dark mode on initial load if it was saved as enabled
-          if (parsedSettings.darkMode) {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
         } catch (e) {
           console.error("Failed to parse settings:", e);
         }
@@ -80,6 +73,17 @@ const SettingsPage = () => {
     setIsSaving(false);
   };
 
+  const handleDarkModeToggle = (checked: boolean) => {
+    setSettings({...settings, darkMode: checked});
+    
+    // Apply dark mode immediately for better user experience
+    if (checked) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -108,7 +112,7 @@ const SettingsPage = () => {
                   <Switch 
                     id="dark-mode" 
                     checked={settings.darkMode}
-                    onCheckedChange={(checked) => setSettings({...settings, darkMode: checked})}
+                    onCheckedChange={handleDarkModeToggle}
                   />
                   <Label htmlFor="dark-mode">Dark Mode</Label>
                 </div>

@@ -1,6 +1,7 @@
 
 import { formatDateByUserPreference, formatDateOnlyByUserPreference } from "@/utils/dateFormatter";
 import { SalesRecord } from "../types";
+import { format } from "date-fns";
 
 export const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return "N/A";
@@ -8,40 +9,36 @@ export const formatDate = (dateString: string | null | undefined): string => {
 };
 
 export const formatModifierInfo = (record: SalesRecord): string => {
-  let info = "";
-  
-  if (record.deleted_at) {
-    info = `Deleted:\n${formatDate(record.deleted_at)}`;
-    if (record.deleted_by) {
-      info += ` by ${record.deleted_by}`;
+  // Format date and time in the required format (NAME DD/MM/YYYY exact time)
+  const formatStampDateTime = (dateString: string | null | undefined, name: string | null | undefined): string => {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      
+      const formattedDate = format(date, 'dd/MM/yyyy HH:mm:ss');
+      return name ? `${name} ${formattedDate}` : formattedDate;
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return '';
     }
-    return info;
+  };
+  
+  // Return empty string if no modification information is available
+  if (!record.modified_by && !record.modified_at && !record.created_by && !record.created_at) {
+    return '';
   }
   
-  if (record.created_at) {
-    info = `Created:\n${formatDate(record.created_at)}`;
-    if (record.created_by) {
-      info += ` by ${record.created_by}`;
-    }
+  // Prioritize modification information over creation information
+  if (record.modified_by && record.modified_at) {
+    return formatStampDateTime(record.modified_at, record.modified_by);
   }
   
-  if (record.modified_at) {
-    info += info ? "\n\n" : "";
-    info += `Modified:\n${formatDate(record.modified_at)}`;
-    if (record.modified_by) {
-      if (record.modifier) {
-        const firstName = record.modifier.user_metadata?.first_name || "";
-        const lastName = record.modifier.user_metadata?.last_name || "";
-        if (firstName || lastName) {
-          info += ` by ${firstName} ${lastName}`;
-        } else {
-          info += ` by ${record.modified_by}`;
-        }
-      } else {
-        info += ` by ${record.modified_by}`;
-      }
-    }
+  // Fall back to creation information
+  if (record.created_by && record.created_at) {
+    return formatStampDateTime(record.created_at, record.created_by);
   }
   
-  return info || "N/A";
+  return '';
 };

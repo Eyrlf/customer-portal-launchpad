@@ -1,7 +1,9 @@
+
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Grid } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "../sales/StatusBadge";
+import { format } from "date-fns";
 
 interface Customer {
   custno: string;
@@ -43,10 +45,39 @@ export function CustomerGrid({
   onRestore,
   getCustomerStatus
 }: CustomerGridProps) {
+  // Format date and time for stamp display
+  const formatStampDateTime = (dateString: string | null | undefined, name: string | null | undefined): string => {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      
+      const formattedDate = format(date, 'dd/MM/yyyy HH:mm:ss');
+      return name ? `${name} ${formattedDate}` : formattedDate;
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return '';
+    }
+  };
+
+  // Generate stamp information
+  const getStampInfo = (customer: Customer): string => {
+    if (customer.modified_by && customer.modified_at) {
+      return formatStampDateTime(customer.modified_at, customer.modified_by);
+    }
+    
+    if (customer.created_by && customer.created_at) {
+      return formatStampDateTime(customer.created_at, customer.created_by);
+    }
+    
+    return '';
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {customers.map((customer) => (
-        <Card key={customer.custno}>
+        <Card key={customer.custno} className="dark:bg-gray-800">
           <CardHeader>
             <CardTitle>{customer.custname || 'N/A'}</CardTitle>
             <CardDescription>{customer.custno}</CardDescription>
@@ -54,9 +85,17 @@ export function CustomerGrid({
           <CardContent className="space-y-2">
             <p>Address: {customer.address || 'N/A'}</p>
             <p>Payment Term: {customer.payterm || 'N/A'}</p>
+            
             {isAdmin && getCustomerStatus && (
-              <p>Status: {getCustomerStatus(customer)}</p>
+              <p>Status: <StatusBadge status={getCustomerStatus(customer)} /></p>
             )}
+            
+            {isAdmin && (
+              <p className="text-xs text-gray-500">
+                {getStampInfo(customer)}
+              </p>
+            )}
+            
             <div className="flex justify-between">
               {onView && (
                 <Button variant="outline" size="sm" onClick={() => onView(customer)}>
@@ -64,12 +103,12 @@ export function CustomerGrid({
                 </Button>
               )}
               <div className="space-x-2">
-                {onEdit && (
+                {canEditCustomer && !showDeleted && (
                   <Button variant="secondary" size="sm" onClick={() => onEdit(customer)}>
                     Edit
                   </Button>
                 )}
-                {onDelete && (
+                {canDeleteCustomer && !showDeleted && (
                   <Button variant="destructive" size="sm" onClick={() => onDelete(customer)} disabled={isDeleting}>
                     {isDeleting ? "Deleting..." : "Delete"}
                   </Button>
