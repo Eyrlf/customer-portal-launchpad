@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -305,11 +304,13 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
 
   const handleDelete = async (sale: SalesRecord) => {
     try {
+      const currentUser = (await supabase.auth.getUser()).data.user;
+      const userId = currentUser?.id || null;
+      
       const { error } = await supabase
         .from('sales')
         .update({ 
-          deleted_at: new Date().toISOString(),
-          deleted_by: (await supabase.auth.getUser()).data.user?.id || null
+          deleted_at: new Date().toISOString()
         })
         .eq('transno', sale.transno);
       
@@ -341,13 +342,15 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
 
   const handleRestore = async (sale: SalesRecord) => {
     try {
+      const currentUser = (await supabase.auth.getUser()).data.user;
+      const userId = currentUser?.id || null;
+      
       const { error } = await supabase
         .from('sales')
         .update({ 
           deleted_at: null,
-          deleted_by: null,
           modified_at: new Date().toISOString(),
-          modified_by: (await supabase.auth.getUser()).data.user?.id || null
+          modified_by: userId
         })
         .eq('transno', sale.transno);
       
@@ -381,7 +384,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
     if (sale.deleted_at) return 'Deleted';
     
     // Check if it was previously deleted and then restored
-    if (sale.modified_at && !sale.deleted_at && sale.deleted_by === null && 
+    if (sale.modified_at && !sale.deleted_at && 
         sale.modified_by !== null && sale.modified_by !== sale.created_by) {
       return 'Restored';
     }

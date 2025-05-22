@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +54,9 @@ export function useSaleFormActions({
         return;
       }
       
+      const currentUser = (await supabase.auth.getUser()).data.user;
+      const userId = currentUser?.id || null;
+      
       if (isEditing && selectedSale) {
         // Check edit permission
         if (!isAdmin && !permissions?.can_edit_sales) {
@@ -72,7 +76,7 @@ export function useSaleFormActions({
             salesdate: values.salesdate?.toISOString(),
             custno: values.custno,
             modified_at: new Date().toISOString(),
-            modified_by: (await supabase.auth.getUser()).data.user?.id
+            modified_by: userId
           })
           .eq('transno', selectedSale.transno);
         
@@ -97,18 +101,23 @@ export function useSaleFormActions({
               throw updateError;
             }
           } else {
-            // Insert new sale detail for existing sale
-            const { error: insertError } = await supabase
-              .from('salesdetail')
-              .insert({
-                transno: selectedSale.transno,
-                prodcode: item.prodcode,
-                quantity: item.quantity
-              });
-            
-            if (insertError) {
-              console.error("Error inserting new sale detail:", insertError);
-              throw insertError;
+            try {
+              // Insert new sale detail for existing sale
+              const { error: insertError } = await supabase
+                .from('salesdetail')
+                .insert({
+                  transno: selectedSale.transno,
+                  prodcode: item.prodcode,
+                  quantity: item.quantity
+                });
+              
+              if (insertError) {
+                console.error("Error inserting new sale detail:", insertError);
+                throw insertError;
+              }
+            } catch (e) {
+              console.error("Error inserting new sale detail:", e);
+              // Continue with other items even if one fails
             }
           }
         }
@@ -158,7 +167,8 @@ export function useSaleFormActions({
             transno: values.transno,
             salesdate: values.salesdate?.toISOString(),
             custno: values.custno,
-            created_by: (await supabase.auth.getUser()).data.user?.id
+            created_by: userId,
+            created_at: new Date().toISOString()
           });
         
         if (error) {
@@ -177,16 +187,21 @@ export function useSaleFormActions({
         
         // Insert sale details for each item
         for (const item of saleItems) {
-          const { error: detailError } = await supabase
-            .from('salesdetail')
-            .insert({
-              transno: values.transno,
-              prodcode: item.prodcode,
-              quantity: item.quantity
-            });
-          
-          if (detailError) {
-            console.error("Error inserting sale detail:", detailError);
+          try {
+            const { error: detailError } = await supabase
+              .from('salesdetail')
+              .insert({
+                transno: values.transno,
+                prodcode: item.prodcode,
+                quantity: item.quantity
+              });
+            
+            if (detailError) {
+              console.error("Error inserting sale detail:", detailError);
+              // Continue with other items even if one fails
+            }
+          } catch (e) {
+            console.error("Error inserting sale detail:", e);
             // Continue with other items even if one fails
           }
         }
