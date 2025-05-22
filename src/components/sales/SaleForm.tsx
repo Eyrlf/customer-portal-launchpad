@@ -30,11 +30,11 @@ export function SaleForm({
   const { isAdmin, permissions } = useAuth();
   const [showDeleted, setShowDeleted] = useState(false);
   
-  // Check if user has any permissions related to sales details
-  const hasSalesDetailPermissions = isAdmin || 
-    permissions?.can_add_salesdetails || 
-    permissions?.can_edit_salesdetails || 
-    permissions?.can_delete_salesdetails;
+  // Check if user has any permissions related to sales
+  const hasSalesPermissions = isAdmin || 
+    permissions?.can_add_sales || 
+    permissions?.can_edit_sales || 
+    permissions?.can_delete_sales;
 
   // Initialize form state using our custom hook
   const {
@@ -88,7 +88,7 @@ export function SaleForm({
           
           {/* Sale Items List */}
           <div>
-            {!hasSalesDetailPermissions && isEditing && (
+            {!hasSalesPermissions && isEditing && (
               <Alert className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>

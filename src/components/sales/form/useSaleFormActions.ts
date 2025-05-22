@@ -236,7 +236,7 @@ export function useSaleFormActions({
   };
 
   const handleAddProduct = () => {
-    // Check permission
+    // Check permission to modify sales
     if (!isAdmin && !permissions?.can_edit_sales) {
       toast({
         title: "Permission Denied",
@@ -247,7 +247,7 @@ export function useSaleFormActions({
     }
     
     // Default new item with empty product code and quantity of 1
-    const newItem = { prodcode: "", quantity: 1, unitprice: 0 } as SaleItem;
+    const newItem = { prodcode: "", quantity: 1, unitprice: 0, transno: selectedSale?.transno || "" } as SaleItem;
     const updatedItems = [...saleItems, newItem];
     setSaleItems(updatedItems);
     
@@ -255,12 +255,13 @@ export function useSaleFormActions({
     const formItems = form.getValues('items') || [];
     form.setValue('items', [...formItems, { 
       prodcode: "", 
-      quantity: 1 
+      quantity: 1,
+      transno: selectedSale?.transno || ""
     }]);
   };
 
   const handleEditProduct = (index: number) => {
-    // Check permission
+    // Check permission to modify sales
     if (!isAdmin && !permissions?.can_edit_sales) {
       toast({
         title: "Permission Denied",
@@ -275,7 +276,7 @@ export function useSaleFormActions({
   };
 
   const handleRemoveProduct = (index: number) => {
-    // Check permission
+    // Check permission to modify sales
     if (!isAdmin && !permissions?.can_delete_sales) {
       toast({
         title: "Permission Denied",
@@ -329,7 +330,7 @@ export function useSaleFormActions({
 
   const handleProductChange = async (index: number, prodcode: string) => {
     const updatedItems = [...saleItems];
-    const product = updatedItems[index] || { quantity: 1, unitprice: 0 };
+    const product = updatedItems[index] || { quantity: 1, unitprice: 0, transno: selectedSale?.transno || "" };
     
     // Get the product price from pricehist
     try {

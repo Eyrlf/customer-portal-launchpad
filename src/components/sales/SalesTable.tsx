@@ -122,9 +122,6 @@ export function SalesTable({ statusFilter = "all", searchQuery = "", sortOrder =
         can_add_sales: true,
         can_edit_sales: true,
         can_delete_sales: true,
-        can_add_salesdetails: true,
-        can_edit_salesdetails: true,
-        can_delete_salesdetails: true,
         created_at: "",
         updated_at: ""
       });
@@ -156,9 +153,6 @@ export function SalesTable({ statusFilter = "all", searchQuery = "", sortOrder =
           can_add_sales: false,
           can_edit_sales: false,
           can_delete_sales: false,
-          can_add_salesdetails: false,
-          can_edit_salesdetails: false,
-          can_delete_salesdetails: false,
           created_at: "",
           updated_at: ""
         } as UserPermission);
@@ -169,9 +163,6 @@ export function SalesTable({ statusFilter = "all", searchQuery = "", sortOrder =
         // Add new properties with default values if they don't exist in the data
         setUserPermissions({
           ...data,
-          can_add_salesdetails: data.can_add_salesdetails !== undefined ? data.can_add_salesdetails : false,
-          can_edit_salesdetails: data.can_edit_salesdetails !== undefined ? data.can_edit_salesdetails : false,
-          can_delete_salesdetails: data.can_delete_salesdetails !== undefined ? data.can_delete_salesdetails : false,
           // Ensure all required fields are present
           can_add_customers: data.can_add_customers !== undefined ? data.can_add_customers : false,
           can_edit_customers: data.can_edit_customers !== undefined ? data.can_edit_customers : false,
