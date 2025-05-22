@@ -1,6 +1,6 @@
-import { FormValues } from "./types";
+import { FormValues, SaleFormData } from "./types";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { SalesRecord, SaleItem } from "../types";
 import { UseFormReturn } from "react-hook-form";
@@ -131,7 +131,7 @@ export function useSaleFormActions({
           action: 'update',
           table_name: 'sales',
           record_id: selectedSale.transno,
-          details: JSON.stringify({...values, total_amount: totalAmount}),
+          details: JSON.stringify({...values, total_amount: totalAmount})
         });
       } else {
         // Check add permission
@@ -217,7 +217,7 @@ export function useSaleFormActions({
           action: 'insert',
           table_name: 'sales',
           record_id: values.transno,
-          details: JSON.stringify({...values, total_amount: totalAmount}),
+          details: JSON.stringify({...values, total_amount: totalAmount})
         });
       }
       
@@ -325,31 +325,23 @@ export function useSaleFormActions({
     console.log("Restore not implemented yet");
   };
 
-  const handleProductChange = (index: number, prodcode: string) => {
+  const handleProductChange = async (index: number, prodcode: string) => {
     const updatedItems = [...saleItems];
     const product = updatedItems[index] || { quantity: 1, unitprice: 0 };
     
     // Get the product price from pricehist
-    const getProductPrice = async (prodcode: string) => {
-      try {
-        const { data, error } = await supabase
-          .from('pricehist')
-          .select('unitprice')
-          .eq('prodcode', prodcode)
-          .order('effdate', { ascending: false })
-          .limit(1);
-        
-        if (error) throw error;
-        
-        return data && data.length > 0 ? data[0].unitprice : 0;
-      } catch (error) {
-        console.error("Error getting product price:", error);
-        return 0;
-      }
-    };
-    
-    // Update product code and fetch price
-    getProductPrice(prodcode).then(price => {
+    try {
+      const { data, error } = await supabase
+        .from('pricehist')
+        .select('unitprice')
+        .eq('prodcode', prodcode)
+        .order('effdate', { ascending: false })
+        .limit(1);
+      
+      if (error) throw error;
+      
+      const price = data && data.length > 0 ? data[0].unitprice : 0;
+      
       updatedItems[index] = { 
         ...product, 
         prodcode,
@@ -357,13 +349,15 @@ export function useSaleFormActions({
       } as SaleItem;
       setSaleItems(updatedItems);
       calculateTotal(updatedItems);
-    });
-    
-    // Update form value
-    const formItems = form.getValues('items');
-    if (formItems && index < formItems.length) {
-      formItems[index].prodcode = prodcode;
-      form.setValue('items', formItems);
+      
+      // Update form value
+      const formItems = form.getValues('items');
+      if (formItems && index < formItems.length) {
+        formItems[index].prodcode = prodcode;
+        form.setValue('items', formItems);
+      }
+    } catch (error) {
+      console.error("Error getting product price:", error);
     }
   };
 
@@ -385,12 +379,141 @@ export function useSaleFormActions({
 
   return {
     handleSubmit,
-    handleAddProduct,
-    handleEditProduct,
-    handleRemoveProduct,
-    handleSoftDeleteItem,
-    handleRestoreItem,
-    handleProductChange,
-    handleQuantityChange
+    handleAddProduct: () => {
+      // Check permission
+      if (!isAdmin && !permissions?.can_add_salesdetails) {
+        toast({
+          title: "Permission Denied",
+          description: "You don't have permission to add sales details.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Default new item with empty product code and quantity of 1
+      const newItem = { prodcode: "", quantity: 1, unitprice: 0 } as SaleItem;
+      const updatedItems = [...saleItems, newItem];
+      setSaleItems(updatedItems);
+      
+      // Update form values with proper types
+      const formItems = form.getValues('items') || [];
+      form.setValue('items', [...formItems, { 
+        prodcode: "", 
+        quantity: 1 
+      }]);
+    },
+    handleEditProduct: (index: number) => {
+      // Check permission
+      if (!isAdmin && !permissions?.can_edit_salesdetails) {
+        toast({
+          title: "Permission Denied",
+          description: "You don't have permission to edit sales details.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Edit implementation would go here - currently not implemented as noted in the code
+    },
+    handleRemoveProduct: (index: number) => {
+      // Check permission
+      if (!isAdmin && !permissions?.can_delete_salesdetails) {
+        toast({
+          title: "Permission Denied",
+          description: "You don't have permission to delete sales details.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const updatedItems = [...saleItems];
+      updatedItems.splice(index, 1);
+      setSaleItems(updatedItems);
+      
+      const currentItems = form.getValues('items');
+      const updatedFormItems = [...currentItems];
+      updatedFormItems.splice(index, 1);
+      form.setValue('items', updatedFormItems);
+      
+      calculateTotal(updatedItems);
+    },
+    handleSoftDeleteItem: async (item: SaleItem, index: number) => {
+      // Check permission
+      if (!isAdmin && !permissions?.can_delete_salesdetails) {
+        toast({
+          title: "Permission Denied",
+          description: "You don't have permission to delete sales details.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Implementation would go here if soft delete is implemented
+      console.log("Soft delete not implemented yet");
+    },
+    handleRestoreItem: async (item: SaleItem, index: number) => {
+      // Only admin can restore deleted items
+      if (!isAdmin) {
+        toast({
+          title: "Permission Denied",
+          description: "Only administrators can restore deleted items.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Implementation would go here if restore is implemented
+      console.log("Restore not implemented yet");
+    },
+    handleProductChange: async (index: number, prodcode: string) => {
+      const updatedItems = [...saleItems];
+      const product = updatedItems[index] || { quantity: 1, unitprice: 0 };
+      
+      // Get the product price from pricehist
+      try {
+        const { data, error } = await supabase
+          .from('pricehist')
+          .select('unitprice')
+          .eq('prodcode', prodcode)
+          .order('effdate', { ascending: false })
+          .limit(1);
+        
+        if (error) throw error;
+        
+        const price = data && data.length > 0 ? data[0].unitprice : 0;
+        
+        updatedItems[index] = { 
+          ...product, 
+          prodcode,
+          unitprice: price
+        } as SaleItem;
+        setSaleItems(updatedItems);
+        calculateTotal(updatedItems);
+        
+        // Update form value
+        const formItems = form.getValues('items');
+        if (formItems && index < formItems.length) {
+          formItems[index].prodcode = prodcode;
+          form.setValue('items', formItems);
+        }
+      } catch (error) {
+        console.error("Error getting product price:", error);
+      }
+    },
+    handleQuantityChange: (index: number, quantity: number) => {
+      const updatedItems = [...saleItems];
+      if (index < updatedItems.length) {
+        updatedItems[index] = { ...updatedItems[index], quantity };
+        setSaleItems(updatedItems);
+        calculateTotal(updatedItems);
+        
+        // Update form value
+        const formItems = form.getValues('items');
+        if (formItems && index < formItems.length) {
+          formItems[index].quantity = quantity;
+          form.setValue('items', formItems);
+        }
+      }
+    }
   };
 }

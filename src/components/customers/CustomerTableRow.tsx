@@ -5,6 +5,8 @@ import { CustomerActions } from "./CustomerActions";
 import { StatusBadge } from "../sales/StatusBadge";
 import { getCustomerStatus } from "./CustomerService";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 interface Customer {
   custno: string;
@@ -42,6 +44,49 @@ export function CustomerTableRow({
 }: CustomerTableRowProps) {
   // Priority is given to the 'restore' action if present
   const status = getCustomerStatus(customer);
+  const [modifierName, setModifierName] = useState('');
+  const [creatorName, setCreatorName] = useState('');
+
+  useEffect(() => {
+    // Fetch user names when the component mounts or customer changes
+    const fetchUserNames = async () => {
+      try {
+        // Fetch modifier name if exists
+        if (customer.modified_by) {
+          const { data: modifierData, error: modifierError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', customer.modified_by)
+            .single();
+          
+          if (!modifierError && modifierData) {
+            const firstName = modifierData.first_name || '';
+            const lastName = modifierData.last_name || '';
+            setModifierName(`${firstName} ${lastName}`.trim() || 'Unknown User');
+          }
+        }
+        
+        // Fetch creator name if exists
+        if (customer.created_by) {
+          const { data: creatorData, error: creatorError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', customer.created_by)
+            .single();
+          
+          if (!creatorError && creatorData) {
+            const firstName = creatorData.first_name || '';
+            const lastName = creatorData.last_name || '';
+            setCreatorName(`${firstName} ${lastName}`.trim() || 'Unknown User');
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user names:", error);
+      }
+    };
+    
+    fetchUserNames();
+  }, [customer.modified_by, customer.created_by]);
 
   // Format date and time in the required format
   const formatStampDateTime = (dateString: string | null | undefined, name: string | null | undefined): string => {
@@ -59,21 +104,21 @@ export function CustomerTableRow({
     }
   };
 
-  // Generate stamp information
+  // Generate stamp information using actual user names
   const getStampInfo = (customer: Customer): string => {
     if (customer.modified_by && customer.modified_at) {
-      return formatStampDateTime(customer.modified_at, customer.modified_by);
+      return formatStampDateTime(customer.modified_at, modifierName);
     }
     
     if (customer.created_by && customer.created_at) {
-      return formatStampDateTime(customer.created_at, customer.created_by);
+      return formatStampDateTime(customer.created_at, creatorName);
     }
     
     return '';
   };
 
   return (
-    <TableRow className={showDeleted ? "bg-gray-50 dark:bg-gray-700" : ""}>
+    <TableRow className={showDeleted ? "bg-gray-50 dark:bg-gray-700 dark:border-gray-600" : ""}>
       <TableCell>{customer.custno}</TableCell>
       <TableCell>
         {!showDeleted ? (
@@ -99,7 +144,7 @@ export function CustomerTableRow({
       
       {/* Only show Stamp column for admin users */}
       {isAdmin && (
-        <TableCell className="text-xs text-gray-500">
+        <TableCell className="text-xs text-gray-500 dark:text-gray-300">
           {getStampInfo(customer)}
         </TableCell>
       )}

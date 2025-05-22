@@ -1,4 +1,3 @@
-
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
@@ -15,6 +14,7 @@ interface UserSettings {
   darkMode: boolean;
 }
 
+// Default settings with light mode as default
 const defaultSettings: UserSettings = {
   darkMode: false,
 };

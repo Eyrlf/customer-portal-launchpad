@@ -33,3 +33,10 @@ export interface SaleFormProps {
   onSubmitSuccess: () => void;
   onCancel: () => void;
 }
+
+export type SaleFormData = {
+  transno: string;
+  salesdate: Date | null;
+  custno: string | null;
+  items: SaleItemFormData[];
+};

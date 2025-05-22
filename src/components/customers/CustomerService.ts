@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
@@ -24,19 +23,22 @@ export interface CustomerFormData {
 
 // Function to get customer status based on record attributes
 export const getCustomerStatus = (customer: Customer): 'Added' | 'Edited' | 'Deleted' | 'Restored' => {
-  if (customer.action === 'restore' || (customer.modified_at && !customer.deleted_at &&
-    customer.modified_by !== null && customer.modified_by !== customer.created_by)) {
+  // If customer was explicitly deleted and then restored
+  if (customer.action === 'restore') {
     return 'Restored';
   }
   
+  // If customer is currently deleted
   if (customer.deleted_at) {
     return 'Deleted';
   }
   
+  // If customer was modified after creation
   if (customer.modified_at && customer.modified_by) {
     return 'Edited';
   }
   
+  // Default status for new customers
   return 'Added';
 };
 
@@ -247,3 +249,6 @@ export const restoreCustomer = async (custno: string): Promise<{ success: boolea
     return { success: false, message: error.message || "Failed to restore customer" };
   }
 };
+
+// Add these exports to fix the missing export issue
+export { fetchCustomers, fetchDeletedCustomers, generateNewCustomerNumber, validateCustomerForm };

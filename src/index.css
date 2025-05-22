@@ -46,7 +46,7 @@
   }
 
   .dark {
-    /* Updated dark mode colors for a complete dark experience */
+    /* Enhanced dark mode colors for a complete dark experience */
     --background: 224 71% 4%;
     --foreground: 213 31% 91%;
 
@@ -101,5 +101,33 @@
 
   .app-container {
     @apply bg-background text-foreground min-h-screen;
+  }
+}
+
+/* Add specific dark mode styles for table and grid components */
+@layer components {
+  .dark .bg-white {
+    @apply bg-gray-900;
+  }
+  
+  .dark .border-gray-200 {
+    @apply border-gray-700;
+  }
+  
+  .dark .text-gray-600 {
+    @apply text-gray-300;
+  }
+  
+  .dark .text-gray-500 {
+    @apply text-gray-400;
+  }
+  
+  .dark .shadow {
+    @apply shadow-gray-800;
+  }
+  
+  /* Customer grid card styles */
+  .dark .customer-card {
+    @apply bg-gray-800 border-gray-700;
   }
 }

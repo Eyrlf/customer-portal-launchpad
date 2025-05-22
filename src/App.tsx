@@ -23,8 +23,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
-const AppWithDarkMode = () => {
-  // Apply dark mode class from localStorage on app load
+const AppWithLightMode = () => {
+  // Apply light mode by default, with user preferences when available
   useEffect(() => {
     const checkDarkMode = () => {
       try {
@@ -47,15 +47,12 @@ const AppWithDarkMode = () => {
           }
         }
         
-        // If no settings found, use system preference
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (prefersDark) {
-          document.documentElement.classList.add("dark");
-        } else {
-          document.documentElement.classList.remove("dark");
-        }
+        // If no settings found, use light mode by default (removed system preference check)
+        document.documentElement.classList.remove("dark");
       } catch (error) {
         console.error("Error checking dark mode:", error);
+        // Default to light mode on error
+        document.documentElement.classList.remove("dark");
       }
     };
     
@@ -95,4 +92,4 @@ const AppWithDarkMode = () => {
   );
 };
 
-export default AppWithDarkMode;
+export default AppWithLightMode;
