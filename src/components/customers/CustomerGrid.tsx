@@ -117,9 +117,9 @@ export function CustomerGrid({
                   )}
                 </div>
               </CardFooter>
-              {customer.updatedAt && (
+              {customer.modified_at && (
                 <div className="absolute top-2 right-2 text-xs text-gray-500 dark:text-gray-400">
-                  {new Date(customer.updatedAt).toLocaleDateString()}
+                  {new Date(customer.modified_at).toLocaleDateString()}
                 </div>
               )}
             </Card>

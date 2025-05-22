@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
@@ -11,6 +12,9 @@ export interface Customer {
   modified_by?: string | null;
   created_at?: string | null;
   created_by?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  updatedAt?: string | null;
   action?: string; // Used to track restore action
 }
 
@@ -250,5 +254,4 @@ export const restoreCustomer = async (custno: string): Promise<{ success: boolea
   }
 };
 
-// Add these exports to fix the missing export issue
-export { fetchCustomers, fetchDeletedCustomers, generateNewCustomerNumber, validateCustomerForm };
+// Remove duplicate exports at the bottom of the file
