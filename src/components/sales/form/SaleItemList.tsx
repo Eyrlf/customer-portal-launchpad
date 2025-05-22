@@ -6,8 +6,6 @@ import { FormLabel } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { Product, SaleItem } from "../types";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 import { SalesDetailActions } from "../SalesDetailActions";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -38,13 +36,13 @@ export function SaleItemList({
 }: SaleItemListProps) {
   const { isAdmin, permissions } = useAuth();
   
-  const canAddSalesDetail = isAdmin || permissions?.can_add_salesdetails;
+  const canModifySales = isAdmin || permissions?.can_edit_sales;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-2">
         <FormLabel>Products</FormLabel>
-        {!showDeleted && canAddSalesDetail && (
+        {!showDeleted && canModifySales && (
           <Button 
             type="button" 
             variant="outline" 
@@ -68,7 +66,7 @@ export function SaleItemList({
               <Select
                 value={item.prodcode}
                 onValueChange={(value) => onProductChange(index, value)}
-                disabled={showDeleted}
+                disabled={showDeleted || !canModifySales}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select product" />
@@ -90,7 +88,7 @@ export function SaleItemList({
                 min="1"
                 value={item.quantity}
                 onChange={(e) => onQuantityChange(index, parseInt(e.target.value) || 1)}
-                disabled={showDeleted}
+                disabled={showDeleted || !canModifySales}
               />
             </div>
             

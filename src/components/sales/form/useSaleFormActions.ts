@@ -237,10 +237,10 @@ export function useSaleFormActions({
 
   const handleAddProduct = () => {
     // Check permission
-    if (!isAdmin && !permissions?.can_add_salesdetails) {
+    if (!isAdmin && !permissions?.can_edit_sales) {
       toast({
         title: "Permission Denied",
-        description: "You don't have permission to add sales details.",
+        description: "You don't have permission to modify sales.",
         variant: "destructive",
       });
       return;
@@ -261,10 +261,10 @@ export function useSaleFormActions({
 
   const handleEditProduct = (index: number) => {
     // Check permission
-    if (!isAdmin && !permissions?.can_edit_salesdetails) {
+    if (!isAdmin && !permissions?.can_edit_sales) {
       toast({
         title: "Permission Denied",
-        description: "You don't have permission to edit sales details.",
+        description: "You don't have permission to modify sales.",
         variant: "destructive",
       });
       return;
@@ -276,10 +276,10 @@ export function useSaleFormActions({
 
   const handleRemoveProduct = (index: number) => {
     // Check permission
-    if (!isAdmin && !permissions?.can_delete_salesdetails) {
+    if (!isAdmin && !permissions?.can_delete_sales) {
       toast({
         title: "Permission Denied",
-        description: "You don't have permission to delete sales details.",
+        description: "You don't have permission to delete sales.",
         variant: "destructive",
       });
       return;
@@ -299,10 +299,10 @@ export function useSaleFormActions({
   
   const handleSoftDeleteItem = async (item: SaleItem, index: number) => {
     // Check permission
-    if (!isAdmin && !permissions?.can_delete_salesdetails) {
+    if (!isAdmin && !permissions?.can_delete_sales) {
       toast({
         title: "Permission Denied",
-        description: "You don't have permission to delete sales details.",
+        description: "You don't have permission to delete sales.",
         variant: "destructive",
       });
       return;

@@ -57,11 +57,11 @@ export function SalesDetailActions({
   }
 
   // For regular items, show dropdown with allowed actions
-  const canEdit = isAdmin || permissions?.can_edit_salesdetails;
-  const canDelete = isAdmin || permissions?.can_delete_salesdetails;
+  const canModifySales = isAdmin || permissions?.can_edit_sales;
+  const canDeleteSales = isAdmin || permissions?.can_delete_sales;
   
   // If user can't perform any action, show disabled button
-  if (!canEdit && !canDelete) {
+  if (!canModifySales && !canDeleteSales) {
     return (
       <Button variant="ghost" size="icon" disabled>
         <MoreVertical size={16} />
@@ -77,13 +77,13 @@ export function SalesDetailActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {canEdit && (
+        {canModifySales && (
           <DropdownMenuItem onClick={onEdit}>
             <Edit className="mr-2 h-4 w-4" />
             Edit
           </DropdownMenuItem>
         )}
-        {canDelete && (
+        {canDeleteSales && (
           <DropdownMenuItem onClick={onDelete} className="text-destructive">
             <Trash className="mr-2 h-4 w-4" />
             Delete
