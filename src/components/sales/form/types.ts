@@ -1,6 +1,7 @@
 
 import { z } from "zod";
 import { Product } from "../types";
+import { Customer, SalesRecord } from "../types";
 
 export const formSchema = z.object({
   transno: z.string().min(1, "Transaction number is required"),
@@ -23,4 +24,12 @@ export interface SaleItemFormData {
 
 export interface ProductWithQuantity extends Product {
   quantity: number;
+}
+
+export interface SaleFormProps {
+  selectedSale: SalesRecord | null;
+  isEditing: boolean;
+  customers: Customer[];
+  onSubmitSuccess: () => void;
+  onCancel: () => void;
 }

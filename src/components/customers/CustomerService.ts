@@ -40,6 +40,75 @@ export const getCustomerStatus = (customer: Customer): 'Added' | 'Edited' | 'Del
   return 'Added';
 };
 
+// Fetch all active customers
+export const fetchCustomers = async (): Promise<Customer[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('customer')
+      .select('*')
+      .is('deleted_at', null)
+      .order('custno', { ascending: true });
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching customers:', error);
+    throw error;
+  }
+};
+
+// Fetch all deleted customers
+export const fetchDeletedCustomers = async (): Promise<Customer[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('customer')
+      .select('*')
+      .not('deleted_at', 'is', null)
+      .order('custno', { ascending: true });
+    
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching deleted customers:', error);
+    throw error;
+  }
+};
+
+// Generate a new customer number
+export const generateNewCustomerNumber = async (): Promise<string> => {
+  try {
+    // Get the highest customer number
+    const { data, error } = await supabase
+      .from('customer')
+      .select('custno')
+      .order('custno', { ascending: false })
+      .limit(1);
+    
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      const lastCustNo = data[0].custno;
+      // If the customer number follows a pattern like 'C0001', extract the number and increment
+      if (/^C\d+$/.test(lastCustNo)) {
+        const numPart = parseInt(lastCustNo.substring(1), 10);
+        return `C${(numPart + 1).toString().padStart(4, '0')}`;
+      }
+      // If it's just a number
+      if (/^\d+$/.test(lastCustNo)) {
+        return (parseInt(lastCustNo, 10) + 1).toString().padStart(5, '0');
+      }
+    }
+    
+    // Default if no customers exist yet
+    return 'C0001';
+  } catch (error) {
+    console.error('Error generating customer number:', error);
+    throw error;
+  }
+};
+
 // Validate customer form data
 export const validateCustomerForm = (data: CustomerFormData): string[] => {
   const errors: string[] = [];
@@ -56,7 +125,7 @@ export const validateCustomerForm = (data: CustomerFormData): string[] => {
 };
 
 // Add a new customer to the database
-export const addCustomer = async (data: CustomerFormData): Promise<{ success: boolean; message: string; custno?: string }> => {
+export const createCustomer = async (data: CustomerFormData): Promise<{ success: boolean; message: string; custno?: string }> => {
   try {
     const currentUser = (await supabase.auth.getUser()).data.user;
     const userId = currentUser?.id || null;
@@ -84,15 +153,10 @@ export const addCustomer = async (data: CustomerFormData): Promise<{ success: bo
 };
 
 // Update an existing customer
-export const updateCustomer = async (data: CustomerFormData): Promise<{ success: boolean; message: string; }> => {
+export const updateCustomer = async (custno: string, data: Partial<CustomerFormData>): Promise<{ success: boolean; message: string; }> => {
   try {
     const currentUser = (await supabase.auth.getUser()).data.user;
     const userId = currentUser?.id || null;
-    
-    // Synchronous function to get user name for the stamp
-    const getUserName = (userId: string): string => {
-      return userId; // Return user ID as a placeholder, will be replaced with real name in UI
-    };
     
     const { error } = await supabase
       .from('customer')
@@ -103,7 +167,7 @@ export const updateCustomer = async (data: CustomerFormData): Promise<{ success:
         modified_by: userId,
         modified_at: new Date().toISOString()
       })
-      .eq('custno', data.custno);
+      .eq('custno', custno);
     
     if (error) {
       throw error;

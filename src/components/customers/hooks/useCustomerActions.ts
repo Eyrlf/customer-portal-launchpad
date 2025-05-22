@@ -9,7 +9,13 @@ import {
   deleteCustomer,
   restoreCustomer
 } from "../CustomerService";
-import { CustomerFormValues } from "../CustomerForm";
+
+export interface CustomerFormValues {
+  custno: string;
+  custname: string;
+  address: string;
+  payterm: string;
+}
 
 interface UseCustomerActionsProps {
   isAdmin: boolean;
@@ -109,19 +115,23 @@ export function useCustomerActions({
     }
     
     try {
-      await deleteCustomer(customer);
+      const result = await deleteCustomer(customer.custno);
       
-      toast({
-        title: "Customer Deleted",
-        description: `Customer ${customer.custname} has been deleted.`,
-      });
-      
-      loadCustomersData();
-    } catch (error) {
+      if (result.success) {
+        toast({
+          title: "Customer Deleted",
+          description: `Customer ${customer.custname} has been deleted.`,
+        });
+        
+        loadCustomersData();
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error: any) {
       console.error('Error deleting customer:', error);
       toast({
         title: "Error",
-        description: "Failed to delete customer.",
+        description: error.message || "Failed to delete customer.",
         variant: "destructive",
       });
     }
@@ -138,31 +148,34 @@ export function useCustomerActions({
     }
     
     try {
-      const result = await restoreCustomer(customer);
+      const result = await restoreCustomer(customer.custno);
       
-      toast({
-        title: "Customer Restored",
-        description: `Customer ${customer.custname} has been restored.`,
-      });
-      
-      // Create a restored customer object with the proper action flag
-      const restoredCustomer = {
-        ...customer,
-        deleted_at: null,
-        action: 'restore'  // This ensures the status shows as "Restored"
-      };
-      
-      // Add to active customers list with the 'restore' action flag
-      addCustomer(restoredCustomer);
-      
-      // Remove from deleted customers list
-      removeCustomerFromDeleted(customer.custno);
-      
-    } catch (error) {
+      if (result.success) {
+        toast({
+          title: "Customer Restored",
+          description: `Customer ${customer.custname} has been restored.`,
+        });
+        
+        // Create a restored customer object with the proper action flag
+        const restoredCustomer = {
+          ...customer,
+          deleted_at: null,
+          action: 'restore'  // This ensures the status shows as "Restored"
+        };
+        
+        // Add to active customers list with the 'restore' action flag
+        addCustomer(restoredCustomer);
+        
+        // Remove from deleted customers list
+        removeCustomerFromDeleted(customer.custno);
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error: any) {
       console.error('Error restoring customer:', error);
       toast({
         title: "Error",
-        description: "Failed to restore customer.",
+        description: error.message || "Failed to restore customer.",
         variant: "destructive",
       });
     }
@@ -181,27 +194,33 @@ export function useCustomerActions({
         }
         
         // Update existing customer
-        await updateCustomer(selectedCustomer.custno, {
+        const result = await updateCustomer(selectedCustomer.custno, {
           custname: values.custname,
           address: values.address,
           payterm: values.payterm,
         });
         
-        // Update the customer in the state with 'Edited' status
-        const updatedCustomer = { 
-          ...selectedCustomer,
-          custname: values.custname, 
-          address: values.address, 
-          payterm: values.payterm, 
-          modified_at: new Date().toISOString() // Add modified timestamp for status tracking
-        };
-        
-        updateCustomerInList(updatedCustomer);
-        
-        toast({
-          title: "Customer Updated",
-          description: `Customer ${values.custname} has been updated successfully.`,
-        });
+        if (result.success) {
+          // Update the customer in the state with 'Edited' status
+          const updatedCustomer = { 
+            ...selectedCustomer,
+            custname: values.custname, 
+            address: values.address, 
+            payterm: values.payterm, 
+            modified_at: new Date().toISOString() // Add modified timestamp for status tracking
+          };
+          
+          updateCustomerInList(updatedCustomer);
+          
+          toast({
+            title: "Customer Updated",
+            description: `Customer ${values.custname} has been updated successfully.`,
+          });
+          
+          setDialogOpen(false);
+        } else {
+          throw new Error(result.message);
+        }
       } else {
         if (!canAddCustomer) {
           toast({
@@ -213,27 +232,32 @@ export function useCustomerActions({
         }
         
         // Create new customer
-        await createCustomer(values);
+        const result = await createCustomer(values);
         
-        // Add the new customer to the state
-        const newCustomer = {
-          custno: values.custno,
-          custname: values.custname,
-          address: values.address,
-          payterm: values.payterm,
-          deleted_at: null,
-          action: 'add' // Mark as newly added
-        };
-        
-        addCustomer(newCustomer);
-        
-        toast({
-          title: "Customer Created",
-          description: `Customer ${values.custname} has been created successfully.`,
-        });
+        if (result.success) {
+          // Add the new customer to the state
+          const newCustomer = {
+            custno: values.custno,
+            custname: values.custname,
+            address: values.address,
+            payterm: values.payterm,
+            deleted_at: null,
+            created_at: new Date().toISOString(),
+            action: 'add' // Mark as newly added
+          };
+          
+          addCustomer(newCustomer);
+          
+          toast({
+            title: "Customer Created",
+            description: `Customer ${values.custname} has been created successfully.`,
+          });
+          
+          setDialogOpen(false);
+        } else {
+          throw new Error(result.message);
+        }
       }
-      
-      setDialogOpen(false);
     } catch (error: any) {
       console.error('Error submitting customer:', error);
       
@@ -248,7 +272,7 @@ export function useCustomerActions({
       
       toast({
         title: "Error",
-        description: "Failed to save customer data.",
+        description: error.message || "Failed to save customer data.",
         variant: "destructive",
       });
     }

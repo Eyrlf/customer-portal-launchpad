@@ -1,7 +1,7 @@
+import { FormValues } from "./types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FormValues } from "./types";
 import { SalesRecord, SaleItem } from "../types";
 import { UseFormReturn } from "react-hook-form";
 
