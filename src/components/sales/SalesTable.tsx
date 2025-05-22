@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { 
   Table, TableBody, TableCaption, TableCell, 
@@ -15,7 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
 import { SalesRecord, UserPermission } from "./types";
-import { formatDate, formatModifierInfo } from "./utils/formatters";
+import { formatDate, formatModifierInfoSync } from "./utils/formatters";
 import { useSalesData } from "./hooks/useSalesData";
 import { StatusBadge } from "./StatusBadge";
 import { SaleForm } from "./SaleForm";
@@ -309,7 +308,7 @@ export function SalesTable({ statusFilter = "all", searchQuery = "", sortOrder =
                       <StatusBadge status={getRecordStatus(sale)} />
                     </TableCell>
                     <TableCell className="whitespace-pre-line text-xs">
-                      {formatModifierInfo(sale)}
+                      {formatModifierInfoSync(sale)}
                     </TableCell>
                   </>
                 )}

@@ -91,3 +91,29 @@ export interface SaleFormData {
   custno: string;
   items: SaleItem[];
 }
+
+export interface Product {
+  prodcode: string;
+  description: string | null;
+  unit: string | null;
+  unitprice?: number;
+}
+
+export interface SalesDetailItem {
+  id?: number;
+  transno: string;
+  prodcode: string;
+  quantity: number;
+  unitprice?: number;
+  product?: Product;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+}
+
+export interface SalesDetailFromDB {
+  transno: string;
+  prodcode: string;
+  quantity: number;
+  deleted_at: string | null;
+  deleted_by: string | null;
+}

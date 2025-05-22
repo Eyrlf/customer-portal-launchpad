@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { CustomerFormValues } from "./CustomerForm";
+import { format } from "date-fns";
 
 export interface Customer {
   custno: string;
@@ -10,200 +10,162 @@ export interface Customer {
   deleted_at: string | null;
   modified_at?: string | null;
   modified_by?: string | null;
-  action?: string; // Used to track restore action
   created_at?: string | null;
   created_by?: string | null;
+  action?: string; // Used to track restore action
 }
 
-export async function fetchCustomers() {
-  const { data, error } = await supabase
-    .from('customer')
-    .select('*')
-    .is('deleted_at', null);
-  
-  if (error) throw error;
-  return data || [];
+export interface CustomerFormData {
+  custno: string;
+  custname: string;
+  address: string;
+  payterm: string;
 }
 
-export async function fetchDeletedCustomers() {
-  const { data, error } = await supabase
-    .from('customer')
-    .select('*')
-    .not('deleted_at', 'is', null);
-  
-  if (error) throw error;
-  return data || [];
-}
-
-export async function generateNewCustomerNumber() {
-  const { data, error } = await supabase
-    .from('customer')
-    .select('custno')
-    .order('custno', { ascending: false })
-    .limit(1);
-  
-  if (error) throw error;
-  
-  let nextNumber = "C0001"; // Default starting number
-  
-  if (data && data.length > 0) {
-    const lastNumber = data[0].custno;
-    // Extract the numeric part and increment
-    if (lastNumber.startsWith('C')) {
-      const numPart = parseInt(lastNumber.substring(1), 10);
-      if (!isNaN(numPart)) {
-        nextNumber = `C${String(numPart + 1).padStart(4, '0')}`;
-      }
-    }
+// Function to get customer status based on record attributes
+export const getCustomerStatus = (customer: Customer): 'Added' | 'Edited' | 'Deleted' | 'Restored' => {
+  if (customer.action === 'restore' || (customer.modified_at && !customer.deleted_at &&
+    customer.modified_by !== null && customer.modified_by !== customer.created_by)) {
+    return 'Restored';
   }
   
-  return nextNumber;
-}
+  if (customer.deleted_at) {
+    return 'Deleted';
+  }
+  
+  if (customer.modified_at && customer.modified_by) {
+    return 'Edited';
+  }
+  
+  return 'Added';
+};
 
-export async function createCustomer(values: CustomerFormValues) {
+// Validate customer form data
+export const validateCustomerForm = (data: CustomerFormData): string[] => {
+  const errors: string[] = [];
+  
+  if (!data.custno.trim()) {
+    errors.push("Customer number is required");
+  }
+  
+  if (!data.custname.trim()) {
+    errors.push("Customer name is required");
+  }
+  
+  return errors;
+};
+
+// Add a new customer to the database
+export const addCustomer = async (data: CustomerFormData): Promise<{ success: boolean; message: string; custno?: string }> => {
   try {
-    // Check field lengths to ensure they don't exceed database constraints
-    if (values.custname && values.custname.length > 20) {
-      values.custname = values.custname.substring(0, 20);
-    }
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    const userId = currentUser?.id || null;
     
-    if (values.address && values.address.length > 50) {
-      values.address = values.address.substring(0, 50);
-    }
-    
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('customer')
       .insert({
-        custno: values.custno,
-        custname: values.custname,
-        address: values.address,
-        payterm: values.payterm || 'COD', // Ensure payterm has a default value
-        created_by: supabase.auth.getUser().then(res => res.data.user?.id),
+        custno: data.custno,
+        custname: data.custname,
+        address: data.address,
+        payterm: data.payterm,
+        created_by: userId,
         created_at: new Date().toISOString()
       });
     
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     
-    // Log activity
-    await supabase.rpc('log_activity', {
-      action: 'insert',
-      table_name: 'customer',
-      record_id: values.custno,
-      details: JSON.stringify(values),
-    });
-    
-    return data;
-  } catch (error) {
-    console.error("Error in createCustomer:", error);
-    throw error;
+    return { success: true, message: "Customer added successfully", custno: data.custno };
+  } catch (error: any) {
+    console.error("Error adding customer:", error);
+    return { success: false, message: error.message || "Failed to add customer" };
   }
-}
+};
 
-export async function updateCustomer(custno: string, values: Omit<CustomerFormValues, 'custno'>) {
+// Update an existing customer
+export const updateCustomer = async (data: CustomerFormData): Promise<{ success: boolean; message: string; }> => {
   try {
-    // Check field lengths to ensure they don't exceed database constraints
-    if (values.custname && values.custname.length > 20) {
-      values.custname = values.custname.substring(0, 20);
-    }
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    const userId = currentUser?.id || null;
     
-    if (values.address && values.address.length > 50) {
-      values.address = values.address.substring(0, 50);
-    }
-
-    // Get the current user for modification tracking
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData?.user?.id;
+    // Synchronous function to get user name for the stamp
+    const getUserName = (userId: string): string => {
+      return userId; // Return user ID as a placeholder, will be replaced with real name in UI
+    };
     
-    // Update customer without trying to set modified_at or modified_by fields
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('customer')
       .update({
-        custname: values.custname,
-        address: values.address,
-        payterm: values.payterm || 'COD',
-        modified_at: new Date().toISOString(),
-        modified_by: userId
+        custname: data.custname,
+        address: data.address,
+        payterm: data.payterm,
+        modified_by: userId,
+        modified_at: new Date().toISOString()
       })
-      .eq('custno', custno);
+      .eq('custno', data.custno);
     
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     
-    // Log activity
-    await supabase.rpc('log_activity', {
-      action: 'update',
-      table_name: 'customer',
-      record_id: custno,
-      details: JSON.stringify({ custno, ...values }),
-    });
-    
-    return data;
-  } catch (error) {
-    console.error("Error in updateCustomer:", error);
-    throw error;
+    return { success: true, message: "Customer updated successfully" };
+  } catch (error: any) {
+    console.error("Error updating customer:", error);
+    return { success: false, message: error.message || "Failed to update customer" };
   }
-}
+};
 
-export async function deleteCustomer(customer: Customer) {
+// Delete a customer
+export const deleteCustomer = async (custno: string): Promise<{ success: boolean; message: string; }> => {
   try {
-    // Get the current user for deletion tracking
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData?.user?.id;
-
-    const { data, error } = await supabase
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    const userId = currentUser?.id || null;
+    
+    const { error } = await supabase
       .from('customer')
-      .update({ 
+      .update({
         deleted_at: new Date().toISOString(),
         deleted_by: userId
       })
-      .eq('custno', customer.custno);
+      .eq('custno', custno);
     
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
     
     // Log activity
     await supabase.rpc('log_activity', {
       action: 'delete',
       table_name: 'customer',
-      record_id: customer.custno,
-      details: JSON.stringify(customer),
+      record_id: custno,
+      details: JSON.stringify({ custno, deleted_by: userId })
     });
     
-    return data;
-  } catch (error) {
-    console.error("Error in deleteCustomer:", error);
-    throw error;
+    return { success: true, message: "Customer deleted successfully" };
+  } catch (error: any) {
+    console.error("Error deleting customer:", error);
+    return { success: false, message: error.message || "Failed to delete customer" };
   }
-}
+};
 
-export async function restoreCustomer(customer: Customer) {
+// Restore a deleted customer
+export const restoreCustomer = async (custno: string): Promise<{ success: boolean; message: string; }> => {
   try {
-    // Check if customer exists first
-    const { data: existingCustomer, error: checkError } = await supabase
-      .from('customer')
-      .select('custno')
-      .eq('custno', customer.custno)
-      .single();
-      
-    if (checkError) {
-      console.error("Error checking customer existence:", checkError);
-      throw new Error("Customer not found");
-    }
+    const currentUser = (await supabase.auth.getUser()).data.user;
+    const userId = currentUser?.id || null;
     
-    // Get the current user for restoration tracking
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData?.user?.id;
-
-    // Restore the customer by setting deleted_at to null
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('customer')
-      .update({ 
+      .update({
         deleted_at: null,
+        deleted_by: null,
         modified_at: new Date().toISOString(),
         modified_by: userId
       })
-      .eq('custno', customer.custno);
+      .eq('custno', custno);
     
     if (error) {
-      console.error("Error restoring customer:", error);
       throw error;
     }
     
@@ -211,40 +173,13 @@ export async function restoreCustomer(customer: Customer) {
     await supabase.rpc('log_activity', {
       action: 'restore',
       table_name: 'customer',
-      record_id: customer.custno,
-      details: JSON.stringify(customer),
+      record_id: custno,
+      details: JSON.stringify({ custno, restored_by: userId })
     });
     
-    return {
-      success: true,
-      customer: {
-        ...customer,
-        deleted_at: null,
-        action: 'restore' // Add an action flag for status detection
-      }
-    };
-  } catch (error) {
-    console.error("Error in restoreCustomer:", error);
-    throw error;
+    return { success: true, message: "Customer restored successfully" };
+  } catch (error: any) {
+    console.error("Error restoring customer:", error);
+    return { success: false, message: error.message || "Failed to restore customer" };
   }
-}
-
-export function getCustomerStatus(customer: Customer) {
-  // Prioritize the 'restore' action flag above all else
-  if (customer.action === 'restore') {
-    return 'Restored';
-  }
-  
-  // If deleted, return 'Deleted'
-  if (customer.deleted_at) {
-    return 'Deleted';
-  }
-  
-  // Check if the customer has been edited
-  if (customer.modified_at) {
-    return 'Edited';
-  }
-  
-  // Default status for newly added customers
-  return 'Added';
-}
+};

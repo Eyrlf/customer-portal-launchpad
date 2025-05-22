@@ -1,31 +1,26 @@
 
 import { z } from "zod";
-import { SalesRecord, Customer, SaleItem, Product } from "../types";
+import { Product } from "../types";
 
-// Form schema with updated items to include id and deleted_at
 export const formSchema = z.object({
   transno: z.string().min(1, "Transaction number is required"),
   salesdate: z.date().nullable(),
   custno: z.string().nullable(),
-  items: z.array(
-    z.object({
-      id: z.string().optional(),
-      prodcode: z.string().min(1, "Product is required"),
-      quantity: z.number().min(1, "Quantity must be at least 1"),
-      deleted_at: z.string().nullable().optional(),
-      deleted_by: z.string().nullable().optional(),
-    })
-  ),
+  items: z.array(z.object({
+    prodcode: z.string(),
+    quantity: z.number().min(1, "Quantity must be at least 1"),
+    deleted_at: z.string().nullable().optional(),
+  })),
 });
 
-// Form values type
 export type FormValues = z.infer<typeof formSchema>;
 
-// Props for the main SaleForm component
-export interface SaleFormProps {
-  selectedSale: SalesRecord | null;
-  isEditing: boolean;
-  customers: Customer[];
-  onSubmitSuccess: () => void;
-  onCancel: () => void;
+export interface SaleItemFormData {
+  prodcode: string;
+  quantity: number;
+  deleted_at?: string | null;
+}
+
+export interface ProductWithQuantity extends Product {
+  quantity: number;
 }

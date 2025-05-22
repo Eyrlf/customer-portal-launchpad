@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { SalesRecord, Product, SaleItem, SalesDetailFromDB } from "../types";
+import { SalesRecord, SaleItem, Product } from "../types";
 import { FormValues, formSchema } from "./types";
 
 export function useSaleFormState(
@@ -169,7 +169,7 @@ export function useSaleFormState(
       if (deletedError) throw deletedError;
       
       if (activeDetails && activeDetails.length > 0) {
-        const items = await Promise.all(
+        const items: SaleItem[] = await Promise.all(
           activeDetails.map(async (detail: any) => {
             // Get the latest price for this product
             const { data: priceData } = await supabase
@@ -182,6 +182,7 @@ export function useSaleFormState(
             const unitprice = priceData && priceData.length > 0 ? priceData[0].unitprice : 0;
             
             return {
+              transno: detail.transno,
               prodcode: detail.prodcode,
               quantity: Number(detail.quantity),
               unitprice,
@@ -202,7 +203,7 @@ export function useSaleFormState(
       }
       
       if (deletedDetails && deletedDetails.length > 0) {
-        const items = await Promise.all(
+        const items: SaleItem[] = await Promise.all(
           deletedDetails.map(async (detail: any) => {
             // Get the latest price for this product
             const { data: priceData } = await supabase
@@ -215,6 +216,7 @@ export function useSaleFormState(
             const unitprice = priceData && priceData.length > 0 ? priceData[0].unitprice : 0;
             
             return {
+              transno: detail.transno,
               prodcode: detail.prodcode,
               quantity: Number(detail.quantity),
               unitprice,

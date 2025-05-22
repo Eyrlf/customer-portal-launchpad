@@ -6,10 +6,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { MoreVertical, Edit, Trash, RefreshCcw } from "lucide-react";
-import { SalesDetailItem } from "./types";
+import { SaleItem } from "./types";
 
 interface SalesDetailActionsProps {
-  item: SalesDetailItem;
+  item: SaleItem;
   onEdit: () => void;
   onDelete: () => void;
   onRestore: () => void;

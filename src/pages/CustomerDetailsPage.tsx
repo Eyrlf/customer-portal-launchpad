@@ -17,6 +17,7 @@ const CustomerDetailsPage = () => {
   const { toast } = useToast();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [stampInfo, setStampInfo] = useState<string>("");
 
   useEffect(() => {
     const fetchCustomerDetails = async () => {
@@ -34,6 +35,9 @@ const CustomerDetailsPage = () => {
         
         if (data) {
           setCustomer(data as Customer);
+          // Get stamp info after we have the customer data
+          const stampText = await formatModifierInfo(data);
+          setStampInfo(stampText);
         }
       } catch (error) {
         console.error('Error fetching customer details:', error);
@@ -72,11 +76,11 @@ const CustomerDetailsPage = () => {
   };
 
   // Function to format modifier info
-  const formatModifierInfo = (record: any) => {
+  const formatModifierInfo = async (record: any): Promise<string> => {
     if (!record) return '';
     
     // Get user info for the modifier
-    const getUserInfo = async (userId: string) => {
+    const getUserInfo = async (userId: string): Promise<string> => {
       try {
         const { data, error } = await supabase
           .from('profiles')
@@ -98,7 +102,7 @@ const CustomerDetailsPage = () => {
       }
     };
     
-    const formatStamp = async (userId: string | null, dateStr: string | null) => {
+    const formatStamp = async (userId: string | null, dateStr: string | null): Promise<string> => {
       if (!userId || !dateStr) return '';
       
       try {
@@ -201,7 +205,7 @@ const CustomerDetailsPage = () => {
                   
                   <div>
                     <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Last Modification</dt>
-                    <dd className="mt-1 text-lg whitespace-pre-line text-sm">{formatModifierInfo(customer)}</dd>
+                    <dd className="mt-1 text-lg whitespace-pre-line text-sm">{stampInfo}</dd>
                   </div>
                 </dl>
               </CardContent>

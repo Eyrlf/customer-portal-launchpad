@@ -19,6 +19,7 @@ const SaleDetailsPage = () => {
   const [sale, setSale] = useState<SalesRecord | null>(null);
   const [saleItems, setSaleItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stampInfo, setStampInfo] = useState<string>("");
 
   useEffect(() => {
     const fetchSaleDetails = async () => {
@@ -104,6 +105,12 @@ const SaleDetailsPage = () => {
           
           setSale(enhancedSale);
           setSaleItems(itemsWithPrices);
+          
+          // Get stamp info
+          if (enhancedSale) {
+            const stampText = await formatModifierInfo(enhancedSale);
+            setStampInfo(stampText);
+          }
         }
       } catch (error) {
         console.error('Error fetching sale details:', error);
@@ -261,7 +268,7 @@ const SaleDetailsPage = () => {
                   
                   <div>
                     <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Last Modification</dt>
-                    <dd className="mt-1 text-lg whitespace-pre-line text-sm">{formatModifierInfo(sale)}</dd>
+                    <dd className="mt-1 text-lg whitespace-pre-line text-sm">{stampInfo}</dd>
                   </div>
                 </dl>
               </CardContent>
