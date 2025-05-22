@@ -1,0 +1,49 @@
+
+/* Customer grid dark mode styles */
+.dark .customer-grid-container {
+  background-color: hsl(var(--background));
+}
+
+.dark .customer-card {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+.dark .customer-name {
+  color: hsl(var(--card-foreground));
+}
+
+.dark .customer-detail {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Customer grid light mode styles */
+.customer-grid-container {
+  background-color: hsl(var(--background));
+}
+
+.customer-card {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.customer-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.customer-name {
+  color: hsl(var(--card-foreground));
+}
+
+.customer-detail {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Grid layout */
+.customer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
