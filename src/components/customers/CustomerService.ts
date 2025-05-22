@@ -11,6 +11,8 @@ export interface Customer {
   modified_at?: string | null;
   modified_by?: string | null;
   action?: string; // Used to track restore action
+  created_at?: string | null;
+  created_by?: string | null;
 }
 
 export async function fetchCustomers() {
@@ -76,6 +78,8 @@ export async function createCustomer(values: CustomerFormValues) {
         custname: values.custname,
         address: values.address,
         payterm: values.payterm || 'COD', // Ensure payterm has a default value
+        created_by: supabase.auth.getUser().then(res => res.data.user?.id),
+        created_at: new Date().toISOString()
       });
     
     if (error) throw error;
@@ -105,6 +109,10 @@ export async function updateCustomer(custno: string, values: Omit<CustomerFormVa
     if (values.address && values.address.length > 50) {
       values.address = values.address.substring(0, 50);
     }
+
+    // Get the current user for modification tracking
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
     
     // Update customer without trying to set modified_at or modified_by fields
     const { data, error } = await supabase
@@ -113,6 +121,8 @@ export async function updateCustomer(custno: string, values: Omit<CustomerFormVa
         custname: values.custname,
         address: values.address,
         payterm: values.payterm || 'COD',
+        modified_at: new Date().toISOString(),
+        modified_by: userId
       })
       .eq('custno', custno);
     
@@ -135,9 +145,16 @@ export async function updateCustomer(custno: string, values: Omit<CustomerFormVa
 
 export async function deleteCustomer(customer: Customer) {
   try {
+    // Get the current user for deletion tracking
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+
     const { data, error } = await supabase
       .from('customer')
-      .update({ deleted_at: new Date().toISOString() })
+      .update({ 
+        deleted_at: new Date().toISOString(),
+        deleted_by: userId
+      })
       .eq('custno', customer.custno);
     
     if (error) throw error;
@@ -171,11 +188,17 @@ export async function restoreCustomer(customer: Customer) {
       throw new Error("Customer not found");
     }
     
+    // Get the current user for restoration tracking
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+
     // Restore the customer by setting deleted_at to null
     const { data, error } = await supabase
       .from('customer')
       .update({ 
         deleted_at: null,
+        modified_at: new Date().toISOString(),
+        modified_by: userId
       })
       .eq('custno', customer.custno);
     

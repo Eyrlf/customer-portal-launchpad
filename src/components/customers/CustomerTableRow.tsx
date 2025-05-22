@@ -14,8 +14,9 @@ interface Customer {
   deleted_at: string | null;
   modified_at?: string | null;
   modified_by?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
   action?: string; // Used to track restore action
-  phone?: string | null;
 }
 
 interface CustomerTableRowProps {
@@ -82,10 +83,15 @@ export function CustomerTableRow({
               Deleted: {formatDate(customer.deleted_at)}
             </div>
           )}
-          {!customer.deleted_at && !customer.modified_at && (
+          {!customer.deleted_at && !customer.modified_at && customer.created_at && (
             <div>
-              Created: {formatDate(customer.created_at || '')}
+              Created: {formatDate(customer.created_at)}
+              <br />
+              By: {customer.created_by || 'Unknown'}
             </div>
+          )}
+          {!customer.deleted_at && !customer.modified_at && !customer.created_at && (
+            <div>No timestamp available</div>
           )}
         </TableCell>
       )}

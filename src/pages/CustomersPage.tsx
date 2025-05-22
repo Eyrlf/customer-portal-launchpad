@@ -6,13 +6,13 @@ import { CustomerDialog } from '@/components/customers/CustomerDialog';
 import { useCustomersData } from '@/components/customers/hooks/useCustomersData';
 import { useCustomerActions } from '@/components/customers/hooks/useCustomerActions';
 import { useCustomerPermissions } from '@/components/customers/hooks/useCustomerPermissions';
-import { Button } from '@/components/ui/button';
 import { Grid, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { CustomerGrid } from '@/components/customers/CustomerGrid';
 import { Customer, getCustomerStatus } from '@/components/customers/CustomerService';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 const CustomersPage = () => {
   const navigate = useNavigate();
@@ -103,7 +103,6 @@ const CustomersPage = () => {
                 <Grid className="h-4 w-4" />
               </Button>
             </div>
-            {/* Removed the duplicate Add Customer button here */}
           </div>
         </div>
 

@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,7 +18,7 @@ interface DashboardStats {
 }
 
 const Dashboard = () => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     totalCustomers: 0,
@@ -58,18 +59,23 @@ const Dashboard = () => {
         .from('profiles')
         .select('*', { count: 'exact', head: true });
       
-      // Get unread notifications
-      const { count: notificationCount, error: notificationError } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user?.id)
-        .eq('is_read', false);
+      // Only fetch notifications for admin users
+      let notificationCount = 0;
+      if (isAdmin) {
+        const { count: notifCount, error: notificationError } = await supabase
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user?.id)
+          .eq('is_read', false);
+          
+        notificationCount = notifCount || 0;
+      }
       
       setStats({
         totalCustomers: customerCount || 0,
         totalSales: salesCount || 0,
         totalUsers: usersCount || 0,
-        unreadNotifications: notificationCount || 0
+        unreadNotifications: notificationCount
       });
       
     } catch (error) {
@@ -122,27 +128,32 @@ const Dashboard = () => {
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Notifications</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.unreadNotifications}</div>
-              <p className="text-xs text-muted-foreground">Unread notifications</p>
-            </CardContent>
-          </Card>
+          {isAdmin && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Notifications</CardTitle>
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.unreadNotifications}</div>
+                <p className="text-xs text-muted-foreground">Unread notifications</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RecentActivity />
-            </CardContent>
-          </Card>
+          {/* Only show Recent Activity for admin users */}
+          {isAdmin && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RecentActivity />
+              </CardContent>
+            </Card>
+          )}
           
           <Card>
             <CardHeader>

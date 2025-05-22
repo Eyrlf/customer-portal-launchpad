@@ -6,16 +6,22 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const NotificationsPage = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate("/auth");
+    // Redirect if not authenticated or not admin
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        navigate("/auth");
+      } else if (!isAdmin) {
+        navigate("/dashboard"); // Redirect non-admin users
+      }
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, isAdmin, navigate]);
 
-  if (isLoading || !isAuthenticated) {
+  // Only render for admin users who are authenticated
+  if (isLoading || !isAuthenticated || !isAdmin) {
     return null;
   }
 

@@ -1,99 +1,89 @@
-
 import React from "react";
-import { Customer } from "./CustomerService";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { StatusBadge } from "../sales/StatusBadge";
-import { User, Phone, MapPin, Calendar } from "lucide-react";
-import { CustomerActions } from "./CustomerActions";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Grid } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface Customer {
+  custno: string;
+  custname: string | null;
+  address: string | null;
+  payterm: string | null;
+  deleted_at: string | null;
+  modified_at?: string | null;
+  modified_by?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+  action?: string; // Used to track restore action
+}
 
 interface CustomerGridProps {
   customers: Customer[];
   onDelete: (customer: Customer) => void;
   onEdit: (customer: Customer) => void;
-  getCustomerStatus?: (customer: Customer) => string;
+  onView?: (customer: Customer) => void;
   isDeleting?: boolean;
   isAdmin?: boolean;
-  onView?: (customer: Customer) => void;
   showDeleted?: boolean;
   canEditCustomer?: boolean;
   canDeleteCustomer?: boolean;
   onRestore?: (customer: Customer) => void;
+  getCustomerStatus?: (customer: Customer) => string;
 }
 
-export function CustomerGrid({ 
-  customers, 
-  onDelete, 
-  onEdit, 
-  getCustomerStatus = (customer) => customer.deleted_at ? 'Deleted' : 
-                                    customer.modified_at ? 'Edited' : 
-                                    (customer.deleted_at !== null && customer.deleted_by === null) ? 'Restored' : 
-                                    'Added',
-  isDeleting = false,
-  isAdmin = false,
+export function CustomerGrid({
+  customers,
+  onDelete,
+  onEdit,
   onView,
-  showDeleted = false,
-  canEditCustomer = false,
-  canDeleteCustomer = false,
-  onRestore
+  isDeleting,
+  isAdmin,
+  showDeleted,
+  canEditCustomer,
+  canDeleteCustomer,
+  onRestore,
+  getCustomerStatus
 }: CustomerGridProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {customers.map((customer) => (
-        <Card key={customer.custno} className="overflow-hidden transition-shadow hover:shadow-md">
-          <CardHeader className="border-b bg-gray-50 p-4">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold line-clamp-1">{customer.custname || "Unnamed Customer"}</h3>
-                <p className="text-sm text-gray-500">{customer.custno}</p>
-              </div>
-              <StatusBadge status={getCustomerStatus(customer)} />
-            </div>
+        <Card key={customer.custno}>
+          <CardHeader>
+            <CardTitle>{customer.custname || 'N/A'}</CardTitle>
+            <CardDescription>{customer.custno}</CardDescription>
           </CardHeader>
-          
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 text-gray-400 mt-1" />
-              <span className="text-sm line-clamp-2">{customer.address || "No address"}</span>
+          <CardContent className="space-y-2">
+            <p>Address: {customer.address || 'N/A'}</p>
+            <p>Payment Term: {customer.payterm || 'N/A'}</p>
+            {isAdmin && getCustomerStatus && (
+              <p>Status: {getCustomerStatus(customer)}</p>
+            )}
+            <div className="flex justify-between">
+              {onView && (
+                <Button variant="outline" size="sm" onClick={() => onView(customer)}>
+                  View
+                </Button>
+              )}
+              <div className="space-x-2">
+                {onEdit && (
+                  <Button variant="secondary" size="sm" onClick={() => onEdit(customer)}>
+                    Edit
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button variant="destructive" size="sm" onClick={() => onDelete(customer)} disabled={isDeleting}>
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </Button>
+                )}
+                {showDeleted && onRestore && (
+                  <Button variant="ghost" size="sm" onClick={() => onRestore(customer)}>
+                    Restore
+                  </Button>
+                )}
+              </div>
             </div>
-            
-            {customer.phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">{customer.phone}</span>
-              </div>
-            )}
-            
-            {customer.payterm && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">Payment term: {customer.payterm}</span>
-              </div>
-            )}
           </CardContent>
-          
-          <CardFooter className="border-t p-4 bg-gray-50">
-            <CustomerActions 
-              customer={customer} 
-              onDelete={onDelete}
-              onEdit={onEdit}
-              showDeleted={showDeleted}
-              isAdmin={isAdmin}
-              canEditCustomer={canEditCustomer}
-              canDeleteCustomer={canDeleteCustomer}
-              onRestore={onRestore}
-              onView={onView}
-            />
-          </CardFooter>
         </Card>
       ))}
-      
-      {customers.length === 0 && (
-        <div className="col-span-full flex flex-col items-center justify-center p-8 text-center">
-          <User className="h-12 w-12 text-gray-300 mb-2" />
-          <h3 className="text-lg font-medium">No customers found</h3>
-          <p className="text-gray-500 text-sm">Try adjusting your filters or add a new customer.</p>
-        </div>
-      )}
     </div>
   );
 }

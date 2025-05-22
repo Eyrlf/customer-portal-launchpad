@@ -30,9 +30,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [notificationCount, setNotificationCount] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Fetch unread notification count
+  // Fetch unread notification count only for admin users
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isAdmin) return;
 
     const fetchNotificationCount = async () => {
       const { count, error } = await supabase
@@ -64,7 +64,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [user]);
+  }, [user, isAdmin]);
 
   const handleLogout = async () => {
     await logout();
@@ -202,19 +202,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <header className="bg-white shadow">
           <div className="flex items-center justify-end px-4 py-3">
             <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/dashboard/notifications')}
-                className="relative"
-              >
-                <Bell size={20} />
-                {notificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
-                    {notificationCount}
-                  </span>
-                )}
-              </Button>
+              {/* Only show notification button for admin users */}
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/dashboard/notifications')}
+                  className="relative"
+                >
+                  <Bell size={20} />
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                      {notificationCount}
+                    </span>
+                  )}
+                </Button>
+              )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

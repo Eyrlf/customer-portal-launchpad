@@ -7,20 +7,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Save } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-
-type DateFormat = "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserSettings {
-  dateFormat: DateFormat;
   darkMode: boolean;
 }
 
 const defaultSettings: UserSettings = {
-  dateFormat: "MM/DD/YYYY", 
   darkMode: false,
 };
 
@@ -44,7 +39,9 @@ const SettingsPage = () => {
       if (savedSettings) {
         try {
           const parsedSettings = JSON.parse(savedSettings);
-          setSettings(parsedSettings);
+          setSettings({
+            darkMode: parsedSettings.darkMode !== undefined ? parsedSettings.darkMode : false
+          });
           
           // Apply dark mode on initial load if it was saved as enabled
           if (parsedSettings.darkMode) {
@@ -107,28 +104,6 @@ const SettingsPage = () => {
               <p className="text-gray-500 dark:text-gray-400 mb-6">Customize the look and feel of the application.</p>
               
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-base font-medium mb-3">Date Format</h3>
-                  <RadioGroup 
-                    value={settings.dateFormat} 
-                    onValueChange={(value) => setSettings({...settings, dateFormat: value as DateFormat})}
-                    className="space-y-3"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="MM/DD/YYYY" id="date-format-1" />
-                      <Label htmlFor="date-format-1">MM/DD/YYYY (e.g., 04/25/2023)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="DD/MM/YYYY" id="date-format-2" />
-                      <Label htmlFor="date-format-2">DD/MM/YYYY (e.g., 25/04/2023)</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="YYYY-MM-DD" id="date-format-3" />
-                      <Label htmlFor="date-format-3">YYYY-MM-DD (e.g., 2023-04-25)</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                
                 <div className="flex items-center space-x-2">
                   <Switch 
                     id="dark-mode" 
