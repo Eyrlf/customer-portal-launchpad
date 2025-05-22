@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -119,20 +120,13 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
           position: null
         } : undefined;
 
-        // When constructing the enhanced sale object, handle the deleted_by field properly
         const enhancedSale: SalesRecord = {
           ...sale,
           customer: customerData,
           employee: employeeData,
           modifier: modifierData,
           total_amount: totalAmount,
-          payment_status: paymentStatus,
-          created_at: sale.created_at || new Date().toISOString(),
-          created_by: sale.created_by || null,
-          deleted_by: sale.deleted_by || null,
-          deleted_at: sale.deleted_at || null,
-          modified_at: sale.modified_at || null,
-          modified_by: sale.modified_by || null
+          payment_status: paymentStatus
         };
 
         return enhancedSale;
@@ -228,13 +222,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
             customer: customerData,
             employee: employeeData,
             modifier: modifierData,
-            total_amount: totalAmount,
-            created_at: sale.created_at || new Date().toISOString(),
-            created_by: sale.created_by || null,
-            deleted_by: sale.deleted_by || null,
-            deleted_at: sale.deleted_at || null,
-            modified_at: sale.modified_at || null,
-            modified_by: sale.modified_by || null
+            total_amount: totalAmount
           };
           
           return enhancedDeletedSale;
@@ -310,7 +298,8 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
       const { error } = await supabase
         .from('sales')
         .update({ 
-          deleted_at: new Date().toISOString()
+          deleted_at: new Date().toISOString(),
+          deleted_by: userId
         })
         .eq('transno', sale.transno);
       
@@ -389,8 +378,7 @@ export function useSalesData(showDeleted: boolean, isAdmin: boolean) {
       return 'Restored';
     }
     
-    if (sale.modified_by !== null && sale.modified_at !== null &&
-        sale.modified_by !== sale.created_by) {
+    if (sale.modified_by !== null && sale.modified_at !== null) {
       return 'Edited';
     }
     

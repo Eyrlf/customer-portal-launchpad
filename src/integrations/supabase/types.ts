@@ -42,23 +42,38 @@ export type Database = {
       customer: {
         Row: {
           address: string | null
+          created_at: string | null
+          created_by: string | null
           custname: string | null
           custno: string
           deleted_at: string | null
+          deleted_by: string | null
+          modified_at: string | null
+          modified_by: string | null
           payterm: string | null
         }
         Insert: {
           address?: string | null
+          created_at?: string | null
+          created_by?: string | null
           custname?: string | null
           custno: string
           deleted_at?: string | null
+          deleted_by?: string | null
+          modified_at?: string | null
+          modified_by?: string | null
           payterm?: string | null
         }
         Update: {
           address?: string | null
+          created_at?: string | null
+          created_by?: string | null
           custname?: string | null
           custno?: string
           deleted_at?: string | null
+          deleted_by?: string | null
+          modified_at?: string | null
+          modified_by?: string | null
           payterm?: string | null
         }
         Relationships: []
@@ -308,6 +323,7 @@ export type Database = {
           created_by: string | null
           custno: string | null
           deleted_at: string | null
+          deleted_by: string | null
           empno: string | null
           modified_at: string | null
           modified_by: string | null
@@ -319,6 +335,7 @@ export type Database = {
           created_by?: string | null
           custno?: string | null
           deleted_at?: string | null
+          deleted_by?: string | null
           empno?: string | null
           modified_at?: string | null
           modified_by?: string | null
@@ -330,6 +347,7 @@ export type Database = {
           created_by?: string | null
           custno?: string | null
           deleted_at?: string | null
+          deleted_by?: string | null
           empno?: string | null
           modified_at?: string | null
           modified_by?: string | null

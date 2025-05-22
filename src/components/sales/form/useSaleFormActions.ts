@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -247,7 +246,7 @@ export function useSaleFormActions({
     }
     
     // Default new item with empty product code and quantity of 1
-    const newItem = { prodcode: "", quantity: 1, unitprice: 0 };
+    const newItem = { prodcode: "", quantity: 1, unitprice: 0 } as SaleItem;
     const updatedItems = [...saleItems, newItem];
     setSaleItems(updatedItems);
     
@@ -355,7 +354,7 @@ export function useSaleFormActions({
         ...product, 
         prodcode,
         unitprice: price
-      };
+      } as SaleItem;
       setSaleItems(updatedItems);
       calculateTotal(updatedItems);
     });
