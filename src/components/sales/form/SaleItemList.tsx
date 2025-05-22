@@ -40,13 +40,6 @@ export function SaleItemList({
   
   const canAddSalesDetail = isAdmin || permissions?.can_add_salesdetails;
 
-  // Function to get product price for display
-  const getProductPriceDisplay = (prodcode: string): string => {
-    const product = products.find(p => p.prodcode === prodcode);
-    const price = product?.unitprice || 0;
-    return `$${price.toFixed(2)}`;
-  };
-
   return (
     <div>
       <div className="flex justify-between items-center mb-2">
